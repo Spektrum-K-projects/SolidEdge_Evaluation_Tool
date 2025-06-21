@@ -1,2 +1,2 @@
 # solidedge_evaluation
-Develomental tool for evaluation tool for SolidEdge
+Developmental tool for evaluation tool for SolidEdge
