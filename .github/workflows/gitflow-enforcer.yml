@@ -1,0 +1,46 @@
+# 1. Workflow Name
+name: 'GitFlow Branching Enforcer'
+
+# 2. Workflow Trigger
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches:
+      - main
+      - develop
+
+# 3. Jobs to Run
+jobs:
+  enforce-gitflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Enforce GitFlow Branching'
+        run: |
+          # 4. Get Source and Target Branch Names
+          SOURCE_BRANCH="${{ github.head_ref }}"
+          TARGET_BRANCH="${{ github.base_ref }}"
+
+          # 5. Output for Debugging
+          echo "Source Branch: $SOURCE_BRANCH"
+          echo "Target Branch: $TARGET_BRANCH"
+
+          # 6. Main Logic - Check Target Branch
+          case "$TARGET_BRANCH" in
+            main)
+              # 7. Rule for 'main'
+              if [[ "$SOURCE_BRANCH" != release/* && "$SOURCE_BRANCH" != hotfix/* ]]; then
+                echo "ERROR: Pull requests to 'main' are only allowed from 'release/*' or 'hotfix/*' branches."
+                exit 1
+              fi
+              ;;
+            develop)
+              # 8. Rule for 'develop'
+              if [[ "$SOURCE_BRANCH" != feature/* && "$SOURCE_BRANCH" != release/* && "$SOURCE_BRANCH" != hotfix/* ]]; then
+                echo "ERROR: Pull requests to 'develop' are only allowed from 'feature/*', 'release/*', or 'hotfix/*' branches."
+                exit 1
+              fi
+              ;;
+          esac
+
+          # 9. Success Message
+          echo "✅ This pull request follows the GitFlow branching rules."
