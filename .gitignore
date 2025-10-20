@@ -1,0 +1,56 @@
+# ===================================================================
+# Python specific
+# ===================================================================
+
+# Virtual environment folders
+venv/
+env/
+.venv/
+.env/
+
+# Python cache and bytecode files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+
+# ===================================================================
+# C# / .NET / Visual Studio specific
+# ===================================================================
+
+# User-specific files
+*.suo
+*.user
+
+# Build output directories
+[Bb]in/
+[Oo]bj/
+
+# NuGet packages folder
+packages/
+*.nupkg
+
+# Visual Studio IDE folder
+.vs/
+
+# Log files
+*.log
+
+
+# ===================================================================
+# Common IDE and OS files
+# ===================================================================
+
+# IDE settings
+.idea/
+.vscode/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
