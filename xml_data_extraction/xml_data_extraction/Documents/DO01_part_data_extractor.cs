@@ -33,7 +33,7 @@ namespace xml_data_extraction.Documents
                     Console.WriteLine($"   Model [{m}]: {model.Name}");
 
                     partElements.Add(new XElement (PR02_part_physical_properties_extractor.Properties(model)));
-
+                    
                     //Identifying the features in the Model
                     features = model.Features;
 
@@ -46,7 +46,12 @@ namespace xml_data_extraction.Documents
 
                         if (output == 462094706)
                         {
-                            partElements.Add(new XElement(FE01_extruded_protrusion_extractor.Protrusion((ExtrudedProtrusion)feat)));
+                            partElements.Add(new XElement(FE01_protrusion_extractor.Protrusion_Extrude((ExtrudedProtrusion)feat)));
+                            continue;
+                        }
+                        else if (output == -1204891230)
+                        {
+                            partElements.Add(new XElement(FE01_protrusion_extractor.Helix_Protrusion_Extrude((HelixProtrusion)feat)));
                             continue;
                         }
                         else if (output == 462094722)
@@ -56,7 +61,7 @@ namespace xml_data_extraction.Documents
                         }
                         else if (output == 462094714)
                         {
-                            partElements.Add(new XElement(FE03_cutout_extractor.Cutout((ExtrudedCutout)feat)));
+                            partElements.Add(new XElement(FE03_cutout_extractor.Cutout_Extrude((ExtrudedCutout)feat)));
                             continue;
                         }
                         else if (output == 462094742)
@@ -69,6 +74,11 @@ namespace xml_data_extraction.Documents
                             partElements.Add(new XElement(FE05_revolve_extractor.Revolved_protrusion((RevolvedProtrusion)feat)));
                             continue;
                         }
+                        else if (output == 462094718)
+                        {
+                            partElements.Add(new XElement(FE05_revolve_extractor.Revolved_Cutout((RevolvedCutout)feat)));
+                            continue;
+                        }
                         else if (output == 462094730)
                         {
                             partElements.Add(new XElement(FE06_rib_extractor.Rib((Rib)feat)));
@@ -76,7 +86,7 @@ namespace xml_data_extraction.Documents
                         }
                         else if (output == 462094738)
                         {
-                            partElements.Add(new XElement(FE04_edge_features_extractor.Round((Round) feat)));
+                            partElements.Add(new XElement(FE04_edge_features_extractor.Round((Round)feat)));
                             continue;
                         }
                         else if (output == -416228998)
@@ -97,6 +107,26 @@ namespace xml_data_extraction.Documents
                         else if (output == 1908287958)
                         {
                             partElements.Add(new XElement(FE10_mirror_extractor.MirrorPart((MirrorPart)feat)));
+                            continue;
+                        }
+                        else if (output == 66247736)
+                        {
+                            partElements.Add(new XElement(FE10_mirror_extractor.MirrorCopy((MirrorCopy)feat)));
+                            continue;
+                        }
+                        else if (output == 1718424353)
+                        {
+                            partElements.Add(new XElement(FE11_webnetwork_extractor.WebNetwork((WebNetwork)feat)));
+                            continue;
+                        }
+                        else if (output == -85880079)
+                        {
+                            partElements.Add(new XElement(FE12_vent_extractor.Vent((Vent)feat)));
+                            continue;
+                        }
+                        else if (output == 462094746)
+                        {
+                            partElements.Add(new XElement(FE13_draft_extractor.draft_Data((Draft)feat)));
                             continue;
                         }
                         else

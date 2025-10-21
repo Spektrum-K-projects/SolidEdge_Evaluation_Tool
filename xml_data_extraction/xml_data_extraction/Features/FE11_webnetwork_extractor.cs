@@ -37,16 +37,23 @@ namespace xml_data_extraction.Features
                 var extentType = webnetwork.ExtentType;
                 webNetworkElements.Add(new XElement("extentType", extentType));
 
-                Profile profile = webnetwork.Profile;
+                var profile_extract = GE04_getProfiles_extractor.Profile_extract(webnetwork);
+                webNetworkElements.Add(profile_extract);
 
-                XElement profileElement = new XElement("Profiles");
-                profileElement.Add(new XElement("profile_name", profile.Name));
-                profileElement.Add(new XElement("profile_type", profile.Type));
+                webnetwork.GetDraft(out DraftSideConstants draftSide, out double draftAngle);
+                webNetworkElements.Add(new XElement("draftSide", draftSide));
+                webNetworkElements.Add(new XElement("draftAngle", draftAngle));
 
-                var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
-                profileElement.Add(dim_extract);
+                //Profile profile = webnetwork.Profile;
 
-                Marshal.ReleaseComObject(profile);
+                //XElement profileElement = new XElement("Profiles");
+                //profileElement.Add(new XElement("profile_name", profile.Name));
+                //profileElement.Add(new XElement("profile_type", profile.Type));
+
+                //var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
+                //profileElement.Add(dim_extract);
+
+                //Marshal.ReleaseComObject(profile);
 
             }
 

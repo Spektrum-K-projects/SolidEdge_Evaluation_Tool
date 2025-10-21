@@ -43,6 +43,9 @@ namespace xml_data_extraction.Features
                 var modelingModeType = rib.ModelingModeType;
                 ribElements.Add(new XElement("modelingModeType", modelingModeType));
 
+                //var profile_extract = GE04_getProfiles_extractor.Profile_extract(rib);
+                //ribElements.Add(profile_extract);
+
                 Profile profile = rib.Profile;
 
                 XElement profileElement = new XElement("Profiles");
@@ -51,6 +54,19 @@ namespace xml_data_extraction.Features
 
                 var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
                 profileElement.Add(dim_extract);
+
+                var lines_extract = GE03_2d_geometries_extractor.Line2d_extract(profile);
+                profileElement.Add(lines_extract);
+
+                var arcs_extract = GE03_2d_geometries_extractor.Arc2d_extract(profile);
+                profileElement.Add(arcs_extract);
+
+                var circles_extract = GE03_2d_geometries_extractor.Circle2d_extract(profile);
+                profileElement.Add(circles_extract);
+
+                var relations_extract = GE02_relations_extractor.Relations2d_extract(profile);
+                profileElement.Add(relations_extract);
+                ribElements.Add(profileElement);
 
                 Marshal.ReleaseComObject(profile);
 

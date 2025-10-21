@@ -22,13 +22,13 @@ namespace xml_data_extraction.Geometries
                     seRelation = seRelations.Item(k);
 
                     relations2dElement.Add(new XElement("index", seRelation.Index));
-                    Console.WriteLine($"Relation Index [{k}]: {seRelation.Index}");
+                    //Console.WriteLine($"Relation Index [{k}]: {seRelation.Index}");
 
                     relations2dElement.Add(new XElement("name", seRelation.Name?.ToString()));
-                    Console.WriteLine($"Relation Name [{k}]: {seRelation.Name}");
+                    //Console.WriteLine($"Relation Name [{k}]: {seRelation.Name}");
 
                     relations2dElement.Add(new XElement("type", seRelation.Type));
-                    Console.WriteLine($"Relation type [{k}]: {seRelation.Type}");
+                    //Console.WriteLine($"Relation type [{k}]: {seRelation.Type}");
                 }
             }
             catch (Exception ex)
