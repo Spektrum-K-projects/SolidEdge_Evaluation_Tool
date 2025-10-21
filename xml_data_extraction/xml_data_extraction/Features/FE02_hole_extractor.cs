@@ -1,26 +1,46 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SolidEdgePart;
-using SolidEdgeFramework;
-using SolidEdgeFrameworkSupport;
+﻿using SolidEdgePart;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using xml_data_extraction.Geometries;
 
 namespace xml_data_extraction.Features
 {
     internal class FE02_hole_extractor
     {
+        public static XElement Holes(Holes holes)
+        {
+            XElement holesElements = new XElement("Holes", new XAttribute("Type", 462094722));
+
+            try
+            {
+                for (int i = 1; i <= holes.Count; i++)
+                {
+                    var holesFeat = holes.Item(i);
+                    holesElements.Add(new XElement(FE02_hole_extractor.Hole((Hole)holesFeat)));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Holes: Error Message:{ex.Message}");
+            }
+            finally
+            {
+                if (holes != null)
+                {
+                    Marshal.ReleaseComObject(holes);
+                    holes = null;
+                }
+            }
+
+            return holesElements;
+        }
+
         public static XElement Hole(Hole hole)
         {
             //SolidEdgePart.Holes holes = null;
             //SolidEdgePart.Hole hole = null;
 
-            XElement holeElements = new XElement("Hole", new XAttribute("Type", 462094722));
+            XElement holeElements = new XElement("Hole");
 
             try
             {
@@ -49,9 +69,9 @@ namespace xml_data_extraction.Features
 
                 holeElements.Add(profileElement);  // Add profile to extrusion
 
-                Console.WriteLine($"HOLE.Depth []: {depth_hole}");
-                    Console.WriteLine($"HOLE.Extent Side []: {extentSide_hole}");
-                    Console.WriteLine($"HOLE.Extent Type []: {extentType_hole}");
+                // Console.WriteLine($"HOLE.Depth []: {depth_hole}");
+                    //Console.WriteLine($"HOLE.Extent Side []: {extentSide_hole}");
+                    //Console.WriteLine($"HOLE.Extent Type []: {extentType_hole}");
 
                 GE01_dimensions_extractor.Dimension_extract(profile_hole);
                 Marshal.ReleaseComObject(profile_hole);
@@ -68,13 +88,9 @@ namespace xml_data_extraction.Features
                     Marshal.ReleaseComObject(hole);
                     hole = null;
                 }
-                //if (holes != null)
-                //{
-                //    Marshal.ReleaseComObject(holes);
-                //    holes = null;
-                //}
             }
 
+            Console.WriteLine($"Created Hole XML list");
             return holeElements;
         }
     }

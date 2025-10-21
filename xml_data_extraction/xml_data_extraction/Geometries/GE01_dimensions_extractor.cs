@@ -28,13 +28,13 @@ namespace xml_data_extraction.Geometries
                     seDimension = seDimensions.Item(k);
 
                     dimensionsElement.Add(new XElement("name", seDimension.Name?.ToString()));
-                    Console.WriteLine($"Dimension measured [{k}]: {seDimension.Name}");
+                    //Console.WriteLine($"Dimension measured [{k}]: {seDimension.Name}");
 
                     dimensionsElement.Add(new XElement("type", seDimension.DimensionType));
-                    Console.WriteLine($"Dimension type [{k}]: {seDimension.DimensionType}");
+                    //Console.WriteLine($"Dimension type [{k}]: {seDimension.DimensionType}");
 
                     dimensionsElement.Add(new XElement("value", seDimension.Value));
-                    Console.WriteLine($"Dimension value [{k}]: {seDimension.Value}");
+                    //Console.WriteLine($"Dimension value [{k}]: {seDimension.Value}");
                 }
             }
             catch (Exception ex)

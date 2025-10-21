@@ -13,6 +13,34 @@ namespace xml_data_extraction.Features
 {
     internal class FE01_extruded_protrusion_extractor
     {
+        public static XElement Protrusions(ExtrudedProtrusions extrudedProtrusions)
+        {
+            XElement protrusionsElements = new XElement("Extrusions", new XAttribute("Type", 462094706));
+
+            try
+            {
+                for (int i = 1; i <= extrudedProtrusions.Count; i++)
+                {
+                    var extrudes = extrudedProtrusions.Item(i);
+                    protrusionsElements.Add(new XElement(FE01_extruded_protrusion_extractor.Protrusion((ExtrudedProtrusion)extrudes)));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Protrusions: Error Message:{ex.Message}");
+            }
+            finally
+            {
+                if (extrudedProtrusions != null)
+                {
+                    Marshal.ReleaseComObject(extrudedProtrusions);
+                    extrudedProtrusions = null;
+                }
+            }
+            
+            return protrusionsElements;
+        }
+
         public static XElement Protrusion(ExtrudedProtrusion extrudedProtrusion)
         {
             //SolidEdgePart.ExtrudedProtrusions extrudedProtrusions = null;
@@ -20,7 +48,7 @@ namespace xml_data_extraction.Features
 
             //var protrusionElements = new Dictionary<string, object>();
 
-            XElement protrusionElements = new XElement("Extrusion", new XAttribute("Type", 462094706));
+            XElement protrusionElements = new XElement("Extrusion");
 
             try
             {
@@ -39,7 +67,7 @@ namespace xml_data_extraction.Features
 
                 Profile profile = extrudedProtrusion.Profile;
 
-                XElement profileElement = new XElement("Profiles");
+                XElement profileElement = new XElement("Profiles"); 
                 //new XElement("Profile",  //create profile element
                 profileElement.Add(new XElement("profile_name", profile.Name));
                 profileElement.Add(new XElement("profile_type", profile.Type));

@@ -11,9 +11,37 @@ namespace xml_data_extraction.Features
 {
     internal class FE03_cutout_extractor
     {
+        public static XElement Cutouts(ExtrudedCutouts extrudedCutouts)
+        {
+            XElement cutoutsElements = new XElement("Cutouts", new XAttribute("Type", 462094714));
+
+            try
+            {
+                for (int i = 1; i <= extrudedCutouts.Count; i++)
+                {
+                    var cutoutsFeat = extrudedCutouts.Item(i);
+                    cutoutsElements.Add(new XElement(FE03_cutout_extractor.Cutout((ExtrudedCutout)cutoutsFeat)));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Cutouts: Error Message:{ex.Message}");
+            }
+            finally
+            {
+                if (extrudedCutouts != null)
+                {
+                    Marshal.ReleaseComObject(extrudedCutouts);
+                    extrudedCutouts = null;
+                }
+            }
+
+            return cutoutsElements;
+        }
+
         public static XElement Cutout(ExtrudedCutout extrudedCutout)
         {
-            XElement cutoutElements = new XElement("Cutout", new XAttribute("Type", 462094714));
+            XElement cutoutElements = new XElement("Cutout");
 
             try
             {

@@ -46,17 +46,20 @@ namespace xml_data_extraction.Documents
 
                         if (output == 462094706)
                         {
-                            partElements.Add(new XElement(FE01_extruded_protrusion_extractor.Protrusion((ExtrudedProtrusion)feat)));
+                            var extrusions = model.ExtrudedProtrusions;
+                            partElements.Add(new XElement(FE01_extruded_protrusion_extractor.Protrusions((ExtrudedProtrusions)extrusions)));
                             continue;
                         }
                         else if (output == 462094722)
                         {
-                            partElements.Add(new XElement(FE02_hole_extractor.Hole((Hole)feat)));
+                            var holes = model.Holes;
+                            partElements.Add(new XElement(FE02_hole_extractor.Holes((Holes)holes)));
                             continue;
                         }
                         else if (output == 462094714)
                         {
-                            partElements.Add(new XElement(FE03_cutout_extractor.Cutout((ExtrudedCutout)feat)));
+                            var cutouts = model.ExtrudedCutouts;
+                            partElements.Add(new XElement(FE03_cutout_extractor.Cutouts((ExtrudedCutouts)cutouts)));
                             continue;
                         }
                         else if (output == 462094742)
@@ -117,6 +120,7 @@ namespace xml_data_extraction.Documents
                 Console.WriteLine("  PartDataExtractor error: " + ex.Message);
             }
 
+            Console.WriteLine($"The part data has been extracted");
             return partElements;
         }
     }
