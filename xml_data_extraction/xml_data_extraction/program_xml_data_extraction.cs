@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using SolidEdgeFramework;
 using SolidEdgeFrameworkSupport;
 using SolidEdgePart;
+using SolidEdgeGeometry;
+using SolidEdgeConstants;
 using xml_data_extraction.Properties;
 using xml_data_extraction.Documents;
 
