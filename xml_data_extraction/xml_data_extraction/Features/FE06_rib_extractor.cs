@@ -1,10 +1,5 @@
 ﻿using SolidEdgePart;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using xml_data_extraction.Geometries;
 
@@ -79,6 +74,5 @@ namespace xml_data_extraction.Features
             Console.WriteLine($"Created Rib XML list");
             return ribElements;
         }
-
     }
 }
