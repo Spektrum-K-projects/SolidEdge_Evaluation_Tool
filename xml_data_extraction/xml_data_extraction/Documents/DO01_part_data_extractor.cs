@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using SolidEdgePart;
 using xml_data_extraction.Features;
@@ -51,7 +46,7 @@ namespace xml_data_extraction.Documents
 
                         if (output == 462094706)
                         {
-                            partElements.Add(new XElement (FE01_extruded_protrusion_extractor.Protrusion((ExtrudedProtrusion)feat)));
+                            partElements.Add(new XElement(FE01_extruded_protrusion_extractor.Protrusion((ExtrudedProtrusion)feat)));
                             continue;
                         }
                         else if (output == 462094722)
@@ -66,12 +61,27 @@ namespace xml_data_extraction.Documents
                         }
                         else if (output == 462094742)
                         {
-                            partElements.Add(new XElement(FE04_chamfer_extractor.Chamfer((Chamfer)feat)));
+                            partElements.Add(new XElement(FE04_edge_features_extractor.Chamfer((Chamfer)feat)));
                             continue;
                         }
                         else if (output == 462094710)
                         {
-                            partElements.Add(new XElement(FE05_revolved_protrusion_extractor.Revolve((RevolvedProtrusion)feat)));
+                            partElements.Add(new XElement(FE05_revolve_extractor.Revolved_protrusion((RevolvedProtrusion)feat)));
+                            continue;
+                        }
+                        else if (output == 462094730)
+                        {
+                            partElements.Add(new XElement(FE06_rib_extractor.Rib((Rib)feat)));
+                            continue;
+                        }
+                        else if (output == 462094738)
+                        {
+                            partElements.Add(new XElement(FE04_edge_features_extractor.Round((Round) feat)));
+                            continue;
+                        }
+                        else if (output == -416228998)
+                        {
+                            partElements.Add(new XElement(FE07_pattern_extractor.Pattern((Pattern)feat)));
                             continue;
                         }
                         else

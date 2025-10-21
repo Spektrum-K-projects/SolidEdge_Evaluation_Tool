@@ -37,7 +37,7 @@ namespace xml_data_extraction.Features
                 var extrudeType = extrudedProtrusion.ExtentType;
                 protrusionElements.Add(new XElement("extrude_type", extrudeType));
 
-                var profile = extrudedProtrusion.Profile;
+                Profile profile = extrudedProtrusion.Profile;
 
                 XElement profileElement = new XElement("Profiles");
                 //new XElement("Profile",  //create profile element
@@ -46,6 +46,18 @@ namespace xml_data_extraction.Features
 
                 var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
                 profileElement.Add(dim_extract); // Add dimensions to profile
+
+                var relations2d_extract = GE02_relations_extractor.Relations2d_extract(profile);
+                profileElement.Add(relations2d_extract);
+
+                var line_extract = GE03_2d_geometries_extractor.Line2d_extract(profile);
+                profileElement.Add(line_extract);
+
+                var circle_extract = GE03_2d_geometries_extractor.Circle2d_extract(profile);
+                profileElement.Add(circle_extract);
+
+                var arc_extract = GE03_2d_geometries_extractor.Arc2d_extract(profile);
+                profileElement.Add(arc_extract);
 
                 protrusionElements.Add(profileElement);  // Add profile to extrusion
 
@@ -56,11 +68,11 @@ namespace xml_data_extraction.Features
                 //                        (new XElement(dim_extract))));
 
 
-                Console.WriteLine($"PRO.Depth []: {depth}");
-                Console.WriteLine($"PRO.Extent Direction []: {extentSide}");
-                Console.WriteLine($"PRO.Extent Type []: {extrudeType}");
-                Console.WriteLine($"PRO.plane []: {profile.Name}");
-                Console.WriteLine($"PRO.type []: {profile.type}");
+                //Console.WriteLine($"PRO.Depth []: {depth}");
+                //Console.WriteLine($"PRO.Extent Direction []: {extentSide}");
+                //Console.WriteLine($"PRO.Extent Type []: {extrudeType}");
+                //Console.WriteLine($"PRO.plane []: {profile.Name}");
+                //Console.WriteLine($"PRO.type []: {profile.type}");
 
                 Marshal.ReleaseComObject(profile);
             }
