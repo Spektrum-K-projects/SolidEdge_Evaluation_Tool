@@ -38,9 +38,9 @@ namespace xml_data_extraction.Features
                 patternElements.Add(new XElement("no_of_occurences", pattern_NoOfOccurences));
                 Console.WriteLine($"Pattern Number of Occurences: {pattern_NoOfOccurences}");
 
-                var pattern_direction = pattern.PatternDirection.GetType().ToString;
-                patternElements.Add(new XElement("direction", pattern_direction));
-                Console.WriteLine($"Pattern Direction: {pattern_direction}");
+                //var pattern_direction = pattern.PatternDirection.GetType().ToString;
+                //patternElements.Add(new XElement("direction", pattern_direction));
+                //Console.WriteLine($"Pattern Direction: {pattern_direction}");
 
                 //var pattern_Plane = pattern.PatternPlane;
                 //patternElements.Add(new XElement("plane", pattern_Plane));
@@ -50,39 +50,39 @@ namespace xml_data_extraction.Features
                 //patternElements.Add(new XElement("arc_pattern", pattern_ArcPattern));
                 //Console.WriteLine($"Pattern Arc: {pattern_ArcPattern}");
 
-                //Rectangular Pattern Data Extract
-                pattern.GetRectangularPatternData(out PatternOffsetTypeConstants Rect_Pattern_Method, out int xDirCount, out int yDirCount, 
-                                                                            out double xDirSpacing,out double yDirSpacing, out double RectAngle);
-                patternElements.Add(new XElement("rectanglar_pattern", new XElement ("method", Rect_Pattern_Method),
-                                                                        new XElement("x_Direction_Count", xDirCount),
-                                                                        new XElement("y_Direction_Count", yDirCount),
-                                                                        new XElement("x_Direction_Spacing", xDirSpacing),
-                                                                        new XElement("y_Direction_Spacing", yDirSpacing),
-                                                                        new XElement("rectangle_angle", RectAngle)));
+                ////Rectangular Pattern Data Extract
+                //pattern.GetRectangularPatternData(out PatternOffsetTypeConstants Rect_Pattern_Method, out int xDirCount, out int yDirCount, 
+                //                                                            out double xDirSpacing,out double yDirSpacing, out double RectAngle);
+                //patternElements.Add(new XElement("rectanglar_pattern", new XElement ("method", Rect_Pattern_Method),
+                //                                                        new XElement("x_Direction_Count", xDirCount),
+                //                                                        new XElement("y_Direction_Count", yDirCount),
+                //                                                        new XElement("x_Direction_Spacing", xDirSpacing),
+                //                                                        new XElement("y_Direction_Spacing", yDirSpacing),
+                //                                                        new XElement("rectangle_angle", RectAngle)));
 
-                //Circular Pattern Data Extract
-                pattern.GetCircularPatternData(out PatternOffsetTypeConstants Circ_Pattern_Method, out int radial_Count, out double angle_Spacing);
-                patternElements.Add(new XElement("circular_pattern", new XElement("method", Circ_Pattern_Method),
-                                                                        new XElement("radial_count", radial_Count),
-                                                                        new XElement("angle_spacing", angle_Spacing)));
+                ////Circular Pattern Data Extract
+                //pattern.GetCircularPatternData(out PatternOffsetTypeConstants Circ_Pattern_Method, out int radial_Count, out double angle_Spacing);
+                //patternElements.Add(new XElement("circular_pattern", new XElement("method", Circ_Pattern_Method),
+                //                                                        new XElement("radial_count", radial_Count),
+                //                                                        new XElement("angle_spacing", angle_Spacing)));
 
-                //Fill Pattern Data Extract
-                pattern.GetFillPatternData(out FillPatternMethodConstants Fill_Pattern_Method, out double xDir_Spacing, out double yDir_Spacing,
-                     out double linear_Offset, out double orient_Vector_Angle, out bool center_Orient_on, out double center_Orient_Angle, out double region_Offset);
-                patternElements.Add(new XElement("fill_pattern", new XElement("method", Fill_Pattern_Method),
-                                                                        new XElement("x_Direction_Spacing", xDir_Spacing),
-                                                                        new XElement("y_Direction_Spacing", yDir_Spacing),
-                                                                        new XElement("linear_offset", linear_Offset),
-                                                                        new XElement("vector_angle", orient_Vector_Angle),
-                                                                        new XElement("center_orientation", center_Orient_on),
-                                                                        new XElement("center_orientation_angle", center_Orient_Angle),
-                                                                        new XElement("region_offset", region_Offset)));
+                ////Fill Pattern Data Extract
+                //pattern.GetFillPatternData(out FillPatternMethodConstants Fill_Pattern_Method, out double xDir_Spacing, out double yDir_Spacing,
+                //     out double linear_Offset, out double orient_Vector_Angle, out bool center_Orient_on, out double center_Orient_Angle, out double region_Offset);
+                //patternElements.Add(new XElement("fill_pattern", new XElement("method", Fill_Pattern_Method),
+                //                                                        new XElement("x_Direction_Spacing", xDir_Spacing),
+                //                                                        new XElement("y_Direction_Spacing", yDir_Spacing),
+                //                                                        new XElement("linear_offset", linear_Offset),
+                //                                                        new XElement("vector_angle", orient_Vector_Angle),
+                //                                                        new XElement("center_orientation", center_Orient_on),
+                //                                                        new XElement("center_orientation_angle", center_Orient_Angle),
+                //                                                        new XElement("region_offset", region_Offset)));
 
                 
 
-                Marshal.ReleaseComObject(Rect_Pattern_Method);
-                Marshal.ReleaseComObject(Circ_Pattern_Method);
-                Marshal.ReleaseComObject(Fill_Pattern_Method);
+                //Marshal.ReleaseComObject(Rect_Pattern_Method);
+                //Marshal.ReleaseComObject(Circ_Pattern_Method);
+                //Marshal.ReleaseComObject(Fill_Pattern_Method);
             }
 
             catch (Exception ex)

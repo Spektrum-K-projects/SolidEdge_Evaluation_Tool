@@ -84,6 +84,21 @@ namespace xml_data_extraction.Documents
                             partElements.Add(new XElement(FE07_pattern_extractor.Pattern((Pattern)feat)));
                             continue;
                         }
+                        else if (output == 462094734)
+                        {
+                            partElements.Add(new XElement(FE08_thinwall_extractor.ThinWall((Thinwall)feat)));
+                            continue;
+                        }
+                        else if (output == 438630050)
+                        {
+                            partElements.Add(new XElement(FE09_thinregion_extractor.ThinRegion((Thin)feat)));
+                            continue;
+                        }
+                        else if (output == 1908287958)
+                        {
+                            partElements.Add(new XElement(FE10_mirror_extractor.MirrorPart((MirrorPart)feat)));
+                            continue;
+                        }
                         else
                         {
                             Console.WriteLine($"Skipping feature");
