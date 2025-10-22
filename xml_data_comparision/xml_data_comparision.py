@@ -1,6 +1,8 @@
 import os
 import xml.etree.ElementTree as ET
 import difflib # For string similarity comparison
+import csv
+import pandas as pd
 from typing import Union, List, Dict, Tuple
 
 # Defining a small tolerance for floating-point comparisons
@@ -320,6 +322,67 @@ def compare_xml_files(reference_file_path: str, student_file_path: str) -> Tuple
     
     return comparison_results, part_similarity_score
 
+def generate_excel_report(student_scores: Dict[str, Dict[str, Tuple[float, float]]], output_folder: str):
+    """
+    Generates a single Excel (.xlsx) file with two sheets:
+    1. Detailed Scores: Contains the score for each part.
+    2. Total Scores: Contains the final summarized score for each student.
+    """
+    report_path = os.path.join(output_folder, 'student_scores_report.xlsx')
+    print(f"\nGenerating Excel report with multiple sheets at: {report_path}")
+
+    try:
+        # --- Prepare data for Sheet 1: Detailed Scores ---
+        detailed_data = []
+        for matriculation_num, parts_scores in student_scores.items():
+            for part_name, (final_pts, total_pts) in parts_scores.items():
+                detailed_data.append({
+                    'Matriculation_Number': matriculation_num,
+                    'Part_Name': part_name,
+                    'Final_Score': final_pts,
+                    'Total_Possible_Points': total_pts
+                })
+        detailed_df = pd.DataFrame(detailed_data)
+
+        # --- Prepare data for Sheet 2: Total Scores ---
+        total_data = []
+        for matriculation_num, parts_scores in student_scores.items():
+            total_student_score = sum(score[0] for score in parts_scores.values())
+            total_possible_score = sum(score[1] for score in parts_scores.values())
+            total_data.append({
+                'Matriculation_Number': matriculation_num,
+                'Total_Final_Score': total_student_score,
+                'Total_Possible_Points': total_possible_score
+            })
+        total_df = pd.DataFrame(total_data)
+
+        detailed_df['Final_Score'] = detailed_df['Final_Score'].round(2)
+        total_df['Total_Final_Score'] = total_df['Total_Final_Score'].round(2)
+
+        # 💡 ROBUST METHOD: Explicitly set the data types for columns before writing to Excel.
+        # This guarantees that Excel will interpret them correctly.
+        detailed_df = detailed_df.astype({
+            'Matriculation_Number': 'int64', 
+            'Part_Name': 'string',
+            'Final_Score': 'float64',
+            'Total_Possible_Points': 'int64'
+        })
+        
+        total_df = total_df.astype({
+            'Matriculation_Number': 'int64',
+            'Total_Final_Score': 'float64',
+            'Total_Possible_Points': 'int64'
+        })
+
+        # --- Write both DataFrames to a single Excel file on different sheets ---
+        with pd.ExcelWriter(report_path, engine='openpyxl') as writer:
+            detailed_df.to_excel(writer, sheet_name='Detailed Scores', index=False)
+            total_df.to_excel(writer, sheet_name='Total Scores', index=False)
+
+        print("Excel report generated successfully.")
+    except Exception as e:
+        print(f"Error: Could not generate Excel report. Make sure 'pandas' and 'openpyxl' are installed. {e}")
+
 if __name__ == "__main__":
     print("--- XML CAD Model Comparison Tool ---")
 
@@ -376,6 +439,20 @@ if __name__ == "__main__":
     while not os.path.isdir(student_xml_folder):                        #Error Handling
         print("Error: Student XML folder not found. Please try again.")
         student_xml_folder = input("Enter the full path to the folder containing student XML files: ").strip()
+
+    output_folder_path = input("\nEnter the full path for the output report folder: ").strip()
+    if not output_folder_path:
+        # If user enters nothing, default to a subfolder in the student files directory
+        output_folder_path = os.path.join(student_xml_folder, 'reports')
+        print(f"No output path provided. Defaulting to: {output_folder_path}")
+
+    try:
+        # Create the directory if it doesn't exist
+        os.makedirs(output_folder_path, exist_ok=True)
+    except OSError as e:
+        print(f"Error: Could not create output directory '{output_folder_path}'. {e}")
+        print("Please check permissions and path validity. Exiting.")
+        exit()
 
     student_files = [f for f in os.listdir(student_xml_folder) if f.lower().endswith('.xml')]
 
@@ -462,7 +539,17 @@ if __name__ == "__main__":
     else:
         for matriculation_num, parts_scores in student_scores.items():
             print(f"{matriculation_num}: Student Score")
+            total_student_score = 0.0
+            total_possible_score = 0.0
             for part_name, (final_pts, total_pts) in parts_scores.items():
                 print(f"    - Part {part_name.replace('part_', '').upper()}: Score - {final_pts:.2f} out of {total_pts:.2f}")
+                total_student_score += final_pts
+                total_possible_score += total_pts
+            # Optional: Print a total score for the student
+            if total_possible_score > 0:
+                print(f"    -> Total Student Score: {total_student_score:.2f} out of {total_possible_score:.2f}")
+
+    if student_scores:
+        generate_excel_report(student_scores, output_folder_path)
 
     print("\nComparison process completed.")
