@@ -37,7 +37,7 @@ namespace xml_data_extraction.Features
                 var extentType = webnetwork.ExtentType;
                 webNetworkElements.Add(new XElement("extentType", extentType));
 
-                var profile_extract = GE04_getProfiles_extractor.Profile_extract(webnetwork);
+                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(webnetwork);
                 webNetworkElements.Add(profile_extract);
 
                 webnetwork.GetDraft(out DraftSideConstants draftSide, out double draftAngle);

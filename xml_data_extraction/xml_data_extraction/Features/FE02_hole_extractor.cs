@@ -31,7 +31,7 @@ namespace xml_data_extraction.Features
                 var extentType_hole = hole.ExtentType;
                 holeElements.Add(new XElement("extent_type", extentType_hole));
 
-                var profile_extract = GE04_getProfiles_extractor.Profile_extract(hole);
+                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(hole);
                 holeElements.Add(profile_extract);
 
                 holeElements.Add(PR03_hole_data_extractor.Hole_Data(hole));
@@ -143,6 +143,7 @@ namespace xml_data_extraction.Features
             catch (Exception ex)
             {
                 Console.WriteLine($"Hole: Error Message:{ex.Message}");
+                return new XElement("Hole", "Error");
             }
             finally
             {
@@ -160,33 +161,6 @@ namespace xml_data_extraction.Features
 
             Console.WriteLine($"Created Hole XML list");
             return holeElements;
-        }
-
-        public static XElement Thread_Data(SolidEdgePart.Thread thread)
-        {
-            XElement threadElements = new XElement("Thread", new XAttribute("Type", 462094722));
-
-            try
-            {
-                threadElements.Add("name", thread.Name);
-                threadElements.Add("type", thread.Type);
-
-            }
-
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Thread: Error Message:{ex.Message}");
-            }
-
-            finally
-            {
-                if (thread != null)
-                {
-                    Marshal.ReleaseComObject(thread);
-                    thread = null;
-                }
-            }
-            return threadElements;
         }
     }
 }

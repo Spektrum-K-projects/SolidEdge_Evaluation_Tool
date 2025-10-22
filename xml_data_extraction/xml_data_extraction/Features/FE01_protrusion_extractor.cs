@@ -39,7 +39,7 @@ namespace xml_data_extraction.Features
                 var extrudeType = extrudedProtrusion.ExtentType;
                 protrusionElements.Add(new XElement("extrude_type", extrudeType));
 
-                var profile_extract = GE04_getProfiles_extractor.Profile_extract(extrudedProtrusion);
+                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(extrudedProtrusion);
                 protrusionElements.Add(profile_extract);
 
                 extrudedProtrusion.GetDirection1Extent(out FeaturePropertyConstants extent1Type, out FeaturePropertyConstants extent1Side, 
@@ -238,7 +238,7 @@ namespace xml_data_extraction.Features
             catch (Exception ex)
             {
                 Console.WriteLine($"Protrusion: Error Message:{ex.Message}");
-                return new XElement("Extrusion");
+                return new XElement("Extrusion", "Error");
             }
             finally
             {
@@ -271,13 +271,13 @@ namespace xml_data_extraction.Features
 
                 helixProtrusionElements.Add(new XElement("modelingModeType", helixProtrusion.ModelingModeType));
 
-                var profile_extract = GE04_getProfiles_extractor.Profile_extract(helixProtrusion);
+                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(helixProtrusion);
                 helixProtrusionElements.Add(profile_extract);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Helix Protrusion: Error Message:{ex.Message}");
-                return new XElement("Helix Extrusion", "Error");
+                return new XElement("HelixExtrusion", "Error");
             }
             finally
             {

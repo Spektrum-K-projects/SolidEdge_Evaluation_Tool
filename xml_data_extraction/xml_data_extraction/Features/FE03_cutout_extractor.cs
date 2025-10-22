@@ -32,7 +32,7 @@ namespace xml_data_extraction.Features
                 var profileSide = extrudedCutout.ProfileSide;
                 cutoutElements.Add(new XElement("profile_side", profileSide));
 
-                var profile_extract = GE04_getProfiles_extractor.Profile_extract(extrudedCutout);
+                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(extrudedCutout);
                 cutoutElements.Add(profile_extract);
 
                 //var profile = extrudedCutout.Profile;
@@ -120,6 +120,7 @@ namespace xml_data_extraction.Features
             catch (Exception ex)
             {
                 Console.WriteLine($"Extruded Cutout: Error Message:{ex.Message}");
+                return new XElement("ExtrudedCutout", "Error");
             }
 
             finally
@@ -148,13 +149,14 @@ namespace xml_data_extraction.Features
 
                 helixCutoutElements.Add(new XElement("modelingModeType", helixCutout.ModelingModeType));
 
-                var profile_extract = GE04_getProfiles_extractor.Profile_extract(helixCutout);
+                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(helixCutout);
                 helixCutoutElements.Add(profile_extract);
             }
 
             catch (Exception ex)
             {
                 Console.WriteLine($"\tHelix Cutout: Error Message:{ex.Message}");
+                return new XElement("HelixCutout", "Error");
             }
 
             finally

@@ -46,7 +46,7 @@ namespace xml_data_extraction.Features
 
                 revolvedProtrusionElements.Add(new XElement("profile_side", revolve.ProfileSide));
 
-                var profile_extract = GE04_getProfiles_extractor.Profile_extract(revolve);
+                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(revolve);
                 revolvedProtrusionElements.Add(profile_extract);
                                 
                 //var profile = revolve.Profile;
@@ -125,7 +125,7 @@ namespace xml_data_extraction.Features
 
                 revolvedCutoutElements.Add(new XElement("profileSide", revolve.ProfileSide));
 
-                var profile_extract = GE04_getProfiles_extractor.Profile_extract(revolve);
+                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(revolve);
                 revolvedCutoutElements.Add(profile_extract);
 
                 //var profile = revolve.Profile;
@@ -154,6 +154,7 @@ namespace xml_data_extraction.Features
             catch (Exception ex)
             {
                 Console.WriteLine($"Revolved Cutout: Error Message:{ex.Message}");
+                return new XElement("RevolvedCutout", "Error");
             }
 
             finally

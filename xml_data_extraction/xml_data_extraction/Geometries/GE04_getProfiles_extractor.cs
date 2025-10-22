@@ -11,7 +11,7 @@ namespace xml_data_extraction.Geometries
 {
     internal class GE04_getProfiles_extractor
     {
-        public static XElement Profile_extract(object feature)
+        public static XElement getProfile_extract(object feature)
         {
             //XElement profileElements = new XElement("Profile");
 
@@ -92,89 +92,181 @@ namespace xml_data_extraction.Geometries
                     continue;
                 }
 
-                XElement profileElement = new XElement("Profile");
+                profilesRoot.Add(Profile_Data(profile));
 
-                try
-                {
-                    profileElement.Add(new XElement("profile_name", profile.Name ?? "Unnamed"));
-                    profileElement.Add(new XElement("profile_type", profile.Type.ToString()));
+                //XElement profileElement = new XElement("Profile");
 
-                    // --- Extract geometry and dimension data ---
-                    var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
-                    if (dim_extract != null)
-                        profileElement.Add(dim_extract);
-                    else
-                        Console.WriteLine($"Warning: No dimensions extracted for {profile.Name}.");
+                //try
+                //{
+                //    profileElement.Add(new XElement("profile_name", profile.Name ?? "Unnamed"));
+                //    profileElement.Add(new XElement("profile_type", profile.Type.ToString()));
 
-                    var relations2d_extract = GE02_relations_extractor.Relations2d_extract(profile);
-                    if (relations2d_extract != null)
-                        profileElement.Add(relations2d_extract);
+                //    // --- Extract geometry and dimension data ---
+                //    var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
+                //    if (dim_extract != null)
+                //        profileElement.Add(dim_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No dimensions extracted for {profile.Name}.");
 
-                    var points_extract = GE03_2d_geometries_extractor.Point2d_extract(profile);
-                    if (points_extract != null)
-                        profileElement.Add(points_extract);
-                    else
-                        Console.WriteLine($"Warning: No Points extracted for {profile.Name}.");
+                //    var relations2d_extract = GE02_relations_extractor.Relations2d_extract(profile);
+                //    if (relations2d_extract != null)
+                //        profileElement.Add(relations2d_extract);
 
-                    var line_extract = GE03_2d_geometries_extractor.Line2d_extract(profile);
-                    if (line_extract != null)
-                        profileElement.Add(line_extract);
-                    else
-                        Console.WriteLine($"Warning: No lines extracted for {profile.Name}.");
+                //    var points_extract = GE03_2d_geometries_extractor.Point2d_extract(profile);
+                //    if (points_extract != null)
+                //        profileElement.Add(points_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No Points extracted for {profile.Name}.");
 
-                    var circle_extract = GE03_2d_geometries_extractor.Circle2d_extract(profile);
-                    if (circle_extract != null)
-                        profileElement.Add(circle_extract);
-                    else
-                        Console.WriteLine($"Warning: No circles extracted for {profile.Name}.");
+                //    var line_extract = GE03_2d_geometries_extractor.Line2d_extract(profile);
+                //    if (line_extract != null)
+                //        profileElement.Add(line_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No lines extracted for {profile.Name}.");
 
-                    var arc_extract = GE03_2d_geometries_extractor.Arc2d_extract(profile);
-                    if (arc_extract != null)
-                        profileElement.Add(arc_extract);
-                    else
-                        Console.WriteLine($"Warning: No arcs extracted for {profile.Name}.");
+                //    var circle_extract = GE03_2d_geometries_extractor.Circle2d_extract(profile);
+                //    if (circle_extract != null)
+                //        profileElement.Add(circle_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No circles extracted for {profile.Name}.");
 
-                    var ellipse_extract = GE03_2d_geometries_extractor.Ellipse2d_extract(profile);
-                    if (ellipse_extract != null)
-                        profileElement.Add(ellipse_extract);
-                    else
-                        Console.WriteLine($"Warning: No ellipses extracted for {profile.Name}.");
+                //    var arc_extract = GE03_2d_geometries_extractor.Arc2d_extract(profile);
+                //    if (arc_extract != null)
+                //        profileElement.Add(arc_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No arcs extracted for {profile.Name}.");
 
-                    var ellipticalArc_extract = GE03_2d_geometries_extractor.EllipticalArc2d_extract(profile);
-                    if (ellipticalArc_extract != null)
-                        profileElement.Add(ellipticalArc_extract);
-                    else
-                        Console.WriteLine($"Warning: No Elliptical Arcs extracted for {profile.Name}.");
+                //    var ellipse_extract = GE03_2d_geometries_extractor.Ellipse2d_extract(profile);
+                //    if (ellipse_extract != null)
+                //        profileElement.Add(ellipse_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No ellipses extracted for {profile.Name}.");
 
-                    var bSpline_extract = GE03_2d_geometries_extractor.BSplineCurve2d_extract(profile);
-                    if (bSpline_extract != null)
-                        profileElement.Add(bSpline_extract);
-                    else
-                        Console.WriteLine($"Warning: No B-Splines extracted for {profile.Name}.");
+                //    var ellipticalArc_extract = GE03_2d_geometries_extractor.EllipticalArc2d_extract(profile);
+                //    if (ellipticalArc_extract != null)
+                //        profileElement.Add(ellipticalArc_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No Elliptical Arcs extracted for {profile.Name}.");
 
-                    var conics_extract = GE03_2d_geometries_extractor.Conic2d_extract(profile);
-                    if (conics_extract != null)
-                        profileElement.Add(conics_extract);
-                    else
-                        Console.WriteLine($"Warning: No Conics extracted for {profile.Name}.");
+                //    var bSpline_extract = GE03_2d_geometries_extractor.BSplineCurve2d_extract(profile);
+                //    if (bSpline_extract != null)
+                //        profileElement.Add(bSpline_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No B-Splines extracted for {profile.Name}.");
 
-                    // --- Add additional Geometries here ---
+                //    var conics_extract = GE03_2d_geometries_extractor.Conic2d_extract(profile);
+                //    if (conics_extract != null)
+                //        profileElement.Add(conics_extract);
+                //    else
+                //        Console.WriteLine($"Warning: No Conics extracted for {profile.Name}.");
 
-                    profilesRoot.Add(profileElement);   // Annexing the data to the Profiles list
-                }
-                catch (Exception innerEx)
-                {
-                    Console.WriteLine($"Error processing profile '{profile?.Name ?? "Unknown"}': {innerEx.Message}");
-                }
-                finally
-                {
-                    Marshal.ReleaseComObject(profile);
-                    profile = null;
-                }
+                //    // --- Add additional Geometries here ---
+
+                //    profilesRoot.Add(profileElement);   // Annexing the data to the Profiles list
+                //}
+                //catch (Exception innerEx)
+                //{
+                //    Console.WriteLine($"Error processing profile '{profile?.Name ?? "Unknown"}': {innerEx.Message}");
+                //}
+                //finally
+                //{
+                //    Marshal.ReleaseComObject(profile);
+                //    profile = null;
+                //}
             }
 
             Console.WriteLine($"Created Profiles XML list");
             return profilesRoot;
+        }
+
+        public static XElement Profile_Data(Profile profile)
+        {
+            XElement profileElement = new XElement("Profile");
+
+            try
+            {
+                profileElement.Add(new XElement("profile_name", profile.Name ?? "Unnamed"));
+                profileElement.Add(new XElement("profile_type", profile.Type.ToString()));
+
+                // --- Extract geometry and dimension data ---
+                var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
+                if (dim_extract != null)
+                    profileElement.Add(dim_extract);
+                else
+                    Console.WriteLine($"Warning: No dimensions extracted for {profile.Name}.");
+
+                var relations2d_extract = GE02_relations_extractor.Relations2d_extract(profile);
+                if (relations2d_extract != null)
+                    profileElement.Add(relations2d_extract);
+
+                var points_extract = GE03_2d_geometries_extractor.Point2d_extract(profile);
+                if (points_extract != null)
+                    profileElement.Add(points_extract);
+                else
+                    Console.WriteLine($"Warning: No Points extracted for {profile.Name}.");
+
+                var line_extract = GE03_2d_geometries_extractor.Line2d_extract(profile);
+                if (line_extract != null)
+                    profileElement.Add(line_extract);
+                else
+                    Console.WriteLine($"Warning: No lines extracted for {profile.Name}.");
+
+                var circle_extract = GE03_2d_geometries_extractor.Circle2d_extract(profile);
+                if (circle_extract != null)
+                    profileElement.Add(circle_extract);
+                else
+                    Console.WriteLine($"Warning: No circles extracted for {profile.Name}.");
+
+                var arc_extract = GE03_2d_geometries_extractor.Arc2d_extract(profile);
+                if (arc_extract != null)
+                    profileElement.Add(arc_extract);
+                else
+                    Console.WriteLine($"Warning: No arcs extracted for {profile.Name}.");
+
+                var ellipse_extract = GE03_2d_geometries_extractor.Ellipse2d_extract(profile);
+                if (ellipse_extract != null)
+                    profileElement.Add(ellipse_extract);
+                else
+                    Console.WriteLine($"Warning: No ellipses extracted for {profile.Name}.");
+
+                var ellipticalArc_extract = GE03_2d_geometries_extractor.EllipticalArc2d_extract(profile);
+                if (ellipticalArc_extract != null)
+                    profileElement.Add(ellipticalArc_extract);
+                else
+                    Console.WriteLine($"Warning: No Elliptical Arcs extracted for {profile.Name}.");
+
+                var bSpline_extract = GE03_2d_geometries_extractor.BSplineCurve2d_extract(profile);
+                if (bSpline_extract != null)
+                    profileElement.Add(bSpline_extract);
+                else
+                    Console.WriteLine($"Warning: No B-Splines extracted for {profile.Name}.");
+
+                var conics_extract = GE03_2d_geometries_extractor.Conic2d_extract(profile);
+                if (conics_extract != null)
+                    profileElement.Add(conics_extract);
+                else
+                    Console.WriteLine($"Warning: No Conics extracted for {profile.Name}.");
+
+                var holes2d_extract = GE03_2d_geometries_extractor.Hole2d_extract(profile);
+                if (holes2d_extract != null)
+                    profileElement.Add(holes2d_extract);
+                else
+                    Console.WriteLine($"Warning: No Holes2d extracted for {profile.Name}.");
+
+                // --- Add additional Geometries here ---
+            }
+            catch (Exception innerEx)
+            {
+                Console.WriteLine($"Error processing profile '{profile?.Name ?? "Unknown"}': {innerEx.Message}");
+            }
+            finally
+            {
+                Marshal.ReleaseComObject(profile);
+                profile = null;
+            }
+
+            Console.WriteLine($"Created Profile XML list");
+            return profileElement;
         }
     }
 }
