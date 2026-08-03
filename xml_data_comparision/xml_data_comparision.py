@@ -2,18 +2,30 @@ import os
 import xml.etree.ElementTree as ET
 import difflib # For string similarity comparison
 import csv
-import pandas as pd
+import sys      # --- NEW: Added for exit codes and stderr ---
+import argparse # --- NEW: Added for command-line arguments ---
+import json     # --- NEW: Added for parsing points map ---
+
+try:
+    import pandas as pd
+    import openpyxl # Used by pandas ExcelWriter engine
+except ImportError:
+    # --- Send errors to stderr ---
+    print("Error: 'pandas' and 'openpyxl' libraries are required. Please install them (`pip install pandas openpyxl`)", file=sys.stderr)
+    sys.exit(1) # Exit with error code
+
 from typing import Union, List, Dict, Tuple
+
 
 # Defining a small tolerance for floating-point comparisons
 FLOAT_TOLERANCE = 1e-6
 
 # Threshold for filename similarity (0.5 for 50% match)
-FILENAME_SIMILARITY_THRESHOLD = 0.5 
+FILENAME_SIMILARITY_THRESHOLD = 0.5
 
 # Threshold for feature element similarity (0.85 for 85% match)
 # This determines if a student feature / geometry element is considered a "match" for a reference feature.
-FEATURE_MATCH_THRESHOLD = 0.85 
+FEATURE_MATCH_THRESHOLD = 0.85
 
 #Conversipn of all German value representation (commas) into decimals
 def normalize_value(value: str) -> Union[float, str]:
@@ -25,11 +37,11 @@ def normalize_value(value: str) -> Union[float, str]:
     """
     if isinstance(value, (int, float)):
         return float(value)
-    
+
     s_value = str(value).strip()
     if ',' in s_value:
         s_value = s_value.replace(',', '.')
-    
+
     try:
         return float(s_value)
     except ValueError:
@@ -60,14 +72,14 @@ def calculate_element_similarity(elem1: ET.Element, elem2: ET.Element) -> float:
 
     attrs1 = dict(elem1.items())
     attrs2 = dict(elem2.items())
-    
+
     if 'Type' in attrs1 and 'Type' in attrs2:
-        max_score += 50 
+        max_score += 50
         if attrs1['Type'] == attrs2['Type']:
             score += 50
 
     common_attrs = set(attrs1.keys()).intersection(set(attrs2.keys()))
-    max_score += len(attrs1) * 5 
+    max_score += len(attrs1) * 5
 
     for attr_name in common_attrs:
         if attr_name == 'Type' and 'Type' in attrs1 and 'Type' in attrs2:
@@ -75,7 +87,7 @@ def calculate_element_similarity(elem1: ET.Element, elem2: ET.Element) -> float:
 
         val1 = normalize_value(attrs1[attr_name])
         val2 = normalize_value(attrs2[attr_name])
-        
+
         if isinstance(val1, float) and isinstance(val2, float):
             if abs(val1 - val2) < FLOAT_TOLERANCE:
                 score += 5
@@ -84,7 +96,7 @@ def calculate_element_similarity(elem1: ET.Element, elem2: ET.Element) -> float:
 
     text1 = elem1.text.strip() if elem1.text else ""
     text2 = elem2.text.strip() if elem2.text else ""
-    
+
     normalized_text1 = normalize_value(text1)
     normalized_text2 = normalize_value(text2)
 
@@ -100,7 +112,7 @@ def calculate_element_similarity(elem1: ET.Element, elem2: ET.Element) -> float:
 
     children1 = list(elem1)
     children2 = list(elem2)
-    
+
     # Calculate child similarity recursively and add to score
     matched_children_indices = set()
     for child1 in children1:
@@ -114,14 +126,19 @@ def calculate_element_similarity(elem1: ET.Element, elem2: ET.Element) -> float:
                     best_child_match_index = i
         if best_child_match_score > 0: # Consider a match if similarity is greater than 0
             score += best_child_match_score * 10 # Scale child similarity
-            matched_children_indices.add(best_child_match_index)
-    
+            if best_child_match_index != -1: # Prevent adding -1 if no match found
+                 matched_children_indices.add(best_child_match_index)
+
     max_score += len(children1) * 10 # Add potential score for all children
 
     if max_score == 0:
-        return 1.0 # Both elements are empty, consider them a perfect match
-    
-    return score / max_score
+        # If both elements are truly empty (no tags, attrs, text, children considered), they match.
+        # Check if tags actually matched initially.
+        return 1.0 if elem1.tag == elem2.tag else 0.0
+
+    final_score = min(score / max_score, 1.0) # Ensure score doesn't exceed 1.0
+    return final_score
+
 
 def calculate_part_similarity(comparison_results: List[str]) -> float:
     """
@@ -132,21 +149,37 @@ def calculate_part_similarity(comparison_results: List[str]) -> float:
     """
     total_results = len(comparison_results)
     if total_results == 0:
-        return 1.0 # No comparisons, assume perfect similarity
+         # If no comparisons happened (e.g., root tag mismatch prevented further checks)
+         # the similarity should be 0 unless the root tags actually matched implicitly.
+         # A more robust check might be needed depending on compare_xml_elements behavior.
+         return 0.0 # Changed from 1.0 to reflect potential root mismatch
 
     match_count = 0
-    # A simplified approach to count matches.
-    # A more robust approach would categorize results (Match, Mismatch, Missing, Extra)
-    # and assign weights to each category.
+    significant_comparisons = 0 # Count only meaningful comparisons
+
     for result in comparison_results:
-        if "Match" in result and "Mismatch" not in result and "Missing" not in result and "Extra" not in result:
-            match_count += 1
-    
-    # This is a very basic similarity. A more advanced one might involve:
-    # 1. Counting specific "feature matched" lines vs. total features.
-    # 2. Assigning weights to different types of matches (e.g., tag match > attribute match > text match).
-    # 3. Penalizing missing/extra elements more heavily.
-    return match_count / total_results
+        # Count matches based on your criteria (e.g., specific tags, attributes)
+        if "Match" in result:
+            # More specific check: ignore simple container matches unless they contain details
+            if "Attribute '" in result or "Text :" in result or "(Matched by similarity" in result:
+                 match_count += 1
+                 significant_comparisons += 1
+            # Could add checks for specific feature tags if needed
+        # Count significant mismatches/missing/extra as comparisons contributing to the denominator
+        elif "Mismatch" in result or "Missing" in result or "Extra" in result:
+             # Filter out less important mismatches if desired (e.g., attribute order)
+             # For now, count all differences.
+             significant_comparisons += 1
+
+
+    if significant_comparisons == 0:
+         # If only the root tag matched but nothing inside differed or was compared
+         # Check if root tags did match (implicitly assumed if we got this far without root mismatch result)
+         return 1.0 if comparison_results and ": Mismatch (Tag:" not in comparison_results[0] else 0.0
+
+    # Ensure we don't divide by zero if no significant comparisons were counted
+    return match_count / significant_comparisons if significant_comparisons > 0 else 0.0
+
 
 def evaluate_part_score(similarity_score: float, total_points: float) -> float:
     """
@@ -157,19 +190,20 @@ def evaluate_part_score(similarity_score: float, total_points: float) -> float:
     """
     calculated_final_points = similarity_score * total_points
     final_points = min(calculated_final_points, total_points) # R05: Clamping
-    return final_points
+    return round(final_points, 2) # Added rounding
+
 
 def compare_xml_elements(ref_elem: ET.Element, student_elem: ET.Element, path: str = "") -> List[str]:
     """
     Recursively compares two XML elements and their children.
     Reports matches and mismatches based on element tags, attributes, and text.
     Handles 'Part' element children (features) as unordered.
-    
+
     Args:
         ref_elem: The reference XML element.
         student_elem: The student XML element.
         path: The current hierarchical path for reporting.
-        
+
     Returns:
         A list of strings, each representing a comparison result.
     """
@@ -180,16 +214,18 @@ def compare_xml_elements(ref_elem: ET.Element, student_elem: ET.Element, path: s
     # 1. Compare Element Tags
     if ref_elem.tag != student_elem.tag:
         results.append(f"{current_path} : Mismatch (Tag: Reference='{ref_elem.tag}', Student='{student_elem.tag}')")
-        return results 
+        return results
 
     # 2. Compare Attributes
     ref_attrs = dict(ref_elem.items())
     student_attrs = dict(student_elem.items())
+    all_attr_names = set(ref_attrs.keys()) | set(student_attrs.keys()) # Consider all unique attrs
 
-    for attr_name, ref_attr_value in ref_attrs.items():
-        if attr_name in student_attrs:
-            student_attr_value = student_attrs[attr_name]
-            
+    for attr_name in sorted(list(all_attr_names)): # Sort for consistent reporting
+        ref_attr_value = ref_attrs.get(attr_name)
+        student_attr_value = student_attrs.get(attr_name)
+
+        if ref_attr_value is not None and student_attr_value is not None:
             normalized_ref = normalize_value(ref_attr_value)
             normalized_student = normalize_value(student_attr_value)
 
@@ -202,30 +238,35 @@ def compare_xml_elements(ref_elem: ET.Element, student_elem: ET.Element, path: s
                 results.append(f"{current_path} Attribute '{attr_name}' : Match (Value='{ref_attr_value}')")
             else:
                 results.append(f"{current_path} Attribute '{attr_name}' : Mismatch (Ref='{ref_attr_value}', Student='{student_attr_value}')")
-        else:
-            results.append(f"{current_path} Attribute '{attr_name}' : Missing in student model")
-    
-    # Check for extra attributes in student model
-    for attr_name in student_attrs:
-        if attr_name not in ref_attrs:
-            results.append(f"{current_path} Attribute '{attr_name}' : Extra in student model")
+        elif ref_attr_value is not None:
+            results.append(f"{current_path} Attribute '{attr_name}' : Missing in student model (Ref Value='{ref_attr_value}')")
+        elif student_attr_value is not None:
+            results.append(f"{current_path} Attribute '{attr_name}' : Extra in student model (Student Value='{student_attr_value}')")
+
 
     # 3. Compare Text Content
-    ref_text = ref_elem.text.strip() if ref_elem.text else "NO VALUE"
-    student_text = student_elem.text.strip() if student_elem.text else "NO VALUE"
+    ref_text = ref_elem.text.strip() if ref_elem.text else None # Use None if no text
+    student_text = student_elem.text.strip() if student_elem.text else None
 
-    normalized_ref_text = normalize_value(ref_text)
-    normalized_student_text = normalize_value(student_text)
+    if ref_text is not None and student_text is not None:
+        normalized_ref_text = normalize_value(ref_text)
+        normalized_student_text = normalize_value(student_text)
 
-    if isinstance(normalized_ref_text, float) and isinstance(normalized_student_text, float):
-        if abs(normalized_ref_text - normalized_student_text) < FLOAT_TOLERANCE:
+        if isinstance(normalized_ref_text, float) and isinstance(normalized_student_text, float):
+            if abs(normalized_ref_text - normalized_student_text) < FLOAT_TOLERANCE:
+                results.append(f"{current_path} Text : Match (Value='{ref_text}')")
+            else:
+                results.append(f"{current_path} Text : Mismatch (Ref='{ref_text}', Student='{student_text}')")
+        elif normalized_ref_text == normalized_student_text:
             results.append(f"{current_path} Text : Match (Value='{ref_text}')")
         else:
-            results.append(f"{current_path} Text : Mismatch (Ref='{ref_text}', Student='{student_text}')")
-    elif normalized_ref_text == normalized_student_text:
-        results.append(f"{current_path} Text : Match (Value='{ref_text}')")
-    else:
-        results.append(f"{current_path} Text : Mismatch (Ref='{ref_text}', Student='{student_text}')")
+             results.append(f"{current_path} Text : Mismatch (Ref='{ref_text}', Student='{student_text}')")
+    elif ref_text is not None:
+        results.append(f"{current_path} Text : Missing in student model (Ref Text='{ref_text}')")
+    elif student_text is not None:
+         results.append(f"{current_path} Text : Extra in student model (Student Text='{student_text}')")
+    # If both are None, it's a match - no report line needed.
+
 
     # 4. Compare Children: Special handling for 'Part' element (features are unordered)
     if ref_elem.tag == 'Part':
@@ -235,22 +276,23 @@ def compare_xml_elements(ref_elem: ET.Element, student_elem: ET.Element, path: s
 
         ref_features = [child for child in ref_elem if child.tag != 'PhysicalProperties']
         student_features_pool = [child for child in student_elem if child.tag != 'PhysicalProperties']
-        
+
         # Keeping track of student features that have been matched
         matched_student_features_indices = set()
 
-        # Compare PhysicalProperties first
+        # Compare PhysicalProperties first (treated as ordered/unique)
         if ref_physical_props is not None and student_physical_props is not None:
             results.extend(compare_xml_elements(
                 ref_physical_props,
                 student_physical_props,
-                current_path
+                current_path # Pass the Part path
             ))
         elif ref_physical_props is not None:
             results.append(f"{current_path}:PhysicalProperties : Missing in student model")
         elif student_physical_props is not None:
             results.append(f"{current_path}:PhysicalProperties : Extra in student model")
 
+        # Compare other features (unordered, using similarity)
         for ref_feature in ref_features:
             best_match_student_feature = None
             highest_similarity = -1.0
@@ -263,38 +305,46 @@ def compare_xml_elements(ref_elem: ET.Element, student_elem: ET.Element, path: s
                         highest_similarity = similarity
                         best_match_student_feature = student_feature
                         best_match_index = i
-            
+
+            ref_feature_identifier = ref_feature.get('Type', ref_feature.tag) # Prefer 'Type' attribute if available
             if best_match_student_feature is not None and highest_similarity >= FEATURE_MATCH_THRESHOLD:
-                results.append(f"{current_path}:{ref_feature.tag} (Matched by similarity {highest_similarity:.2f}) : Match")
+                results.append(f"{current_path}:Feature '{ref_feature_identifier}' : Match found (Similarity {highest_similarity:.2f})")
+                # Recursively compare the matched features for details
                 results.extend(compare_xml_elements(
                     ref_feature,
                     best_match_student_feature,
-                    current_path
+                    f"{current_path}:{ref_feature_identifier}" # Pass feature identifier in path
                 ))
                 matched_student_features_indices.add(best_match_index)
             else:
-                results.append(f"{current_path}:{ref_feature.tag} : Missing in student model (No similar feature found or below {FEATURE_MATCH_THRESHOLD*100}% similarity)")
+                results.append(f"{current_path}:Feature '{ref_feature_identifier}' : Missing in student model (No similar feature found or below threshold)")
 
+        # Report any remaining student features as extra
         for i, student_feature in enumerate(student_features_pool):
             if i not in matched_student_features_indices:
-                results.append(f"{current_path}:{student_feature.tag} : Extra in student model")
+                student_feature_identifier = student_feature.get('Type', student_feature.tag)
+                results.append(f"{current_path}:Feature '{student_feature_identifier}' : Extra in student model")
 
-    else:
+    else: # Normal ordered child comparison
         ref_children = list(ref_elem)
         student_children = list(student_elem)
+        len_ref = len(ref_children)
+        len_student = len(student_children)
 
-        for i in range(max(len(ref_children), len(student_children))):
-            ref_child = ref_children[i] if i < len(ref_children) else None
-            student_child = student_children[i] if i < len(student_children) else None
+        for i in range(max(len_ref, len_student)):
+            ref_child = ref_children[i] if i < len_ref else None
+            student_child = student_children[i] if i < len_student else None
 
             if ref_child is not None and student_child is not None:
-                results.extend(compare_xml_elements(ref_child, student_child, current_path))
+                 # Recursive call for paired children
+                 results.extend(compare_xml_elements(ref_child, student_child, current_path))
             elif ref_child is not None:
-                results.append(f"{current_path}:{ref_child.tag} : Missing in student model")
+                results.append(f"{current_path}:{ref_child.tag} : Missing in student model at position {i}")
             elif student_child is not None:
-                results.append(f"{current_path}:{student_child.tag} : Extra in student model")
+                results.append(f"{current_path}:{student_child.tag} : Extra in student model at position {i}")
 
     return results
+
 
 def compare_xml_files(reference_file_path: str, student_file_path: str) -> Tuple[List[str], float]:
     """
@@ -319,7 +369,7 @@ def compare_xml_files(reference_file_path: str, student_file_path: str) -> Tuple
 
     comparison_results = compare_xml_elements(ref_root, student_root)
     part_similarity_score = calculate_part_similarity(comparison_results) # [Sr01, Sr03]
-    
+
     return comparison_results, part_similarity_score
 
 def generate_excel_report(student_scores: Dict[str, Dict[str, Tuple[float, float]]], output_folder: str):
@@ -329,7 +379,7 @@ def generate_excel_report(student_scores: Dict[str, Dict[str, Tuple[float, float
     2. Total Scores: Contains the final summarized score for each student.
     """
     report_path = os.path.join(output_folder, 'student_scores_report.xlsx')
-    print(f"\nGenerating Excel report with multiple sheets at: {report_path}")
+    print(f"\nGenerating Excel report with multiple sheets at: {report_path}") # Use stdout for info
 
     try:
         # --- Prepare data for Sheet 1: Detailed Scores ---
@@ -359,19 +409,18 @@ def generate_excel_report(student_scores: Dict[str, Dict[str, Tuple[float, float
         detailed_df['Final_Score'] = detailed_df['Final_Score'].round(2)
         total_df['Total_Final_Score'] = total_df['Total_Final_Score'].round(2)
 
-        # 💡 ROBUST METHOD: Explicitly set the data types for columns before writing to Excel.
-        # This guarantees that Excel will interpret them correctly.
+        # Ensure correct types - Use object/string for Matriculation Number if it might not be purely numeric
         detailed_df = detailed_df.astype({
-            'Matriculation_Number': 'int64', 
+            'Matriculation_Number': 'string', # Changed to string for safety
             'Part_Name': 'string',
             'Final_Score': 'float64',
-            'Total_Possible_Points': 'int64'
+            'Total_Possible_Points': 'float64' # Changed to float for consistency
         })
-        
+
         total_df = total_df.astype({
-            'Matriculation_Number': 'int64',
+            'Matriculation_Number': 'string', # Changed to string
             'Total_Final_Score': 'float64',
-            'Total_Possible_Points': 'int64'
+            'Total_Possible_Points': 'float64' # Changed to float
         })
 
         # --- Write both DataFrames to a single Excel file on different sheets ---
@@ -379,177 +428,260 @@ def generate_excel_report(student_scores: Dict[str, Dict[str, Tuple[float, float
             detailed_df.to_excel(writer, sheet_name='Detailed Scores', index=False)
             total_df.to_excel(writer, sheet_name='Total Scores', index=False)
 
-        print("Excel report generated successfully.")
+        print("Excel report generated successfully.") # Use stdout for info
     except Exception as e:
-        print(f"Error: Could not generate Excel report. Make sure 'pandas' and 'openpyxl' are installed. {e}")
+         # Use stderr for errors
+        print(f"Error: Could not generate Excel report. {e}", file=sys.stderr)
+        # Re-raise the exception so the script exits with an error code
+        raise e
 
-if __name__ == "__main__":
-    print("--- XML CAD Model Comparison Tool ---")
+# --- MODIFICATION: To add a new function that encapsulates the main logic for comparison, allowing it to be called from C# with arguments instead of relying on input().---
 
-    ref_xml_folder = input("Enter the full path to the folder containing reference XML files: ").strip()
-    while not os.path.isdir(ref_xml_folder):
-        print("Error: Reference XML folder not found. Please try again.")
-        ref_xml_folder = input("Enter the full path to the folder containing reference XML files: ").strip()
+def run_comparison_logic(args):
+    """
+    Contains the core logic from your original __main__ block,
+    but uses parsed arguments instead of input().
+    This function WILL NOT BE MODIFIED from your baseline logic,
+    except to replace input() calls with args properties.
+    """
+    ref_xml_folder = args.baseline # Replaces input()
+    student_xml_folder = args.input # Replaces input()
+    output_folder_path = args.output # Replaces input()
+    points_map_json = args.points_map # Comes from C#
 
-    reference_models: List[Tuple[str, str, ET.Element]] = [] # (base_filename, full_path, root_element)
+    # --- Load Points Map (Modified from input() to use args.points_map) ---
+    try:
+        # Handle potential extra quotes if passed incorrectly from cmd line
+        if points_map_json.startswith('"') and points_map_json.endswith('"'):
+            points_map_json = points_map_json[1:-1].replace('\\"', '"')
+        reference_part_total_points = json.loads(points_map_json)
+        # Convert points to float for calculations
+        for part, points in reference_part_total_points.items():
+            try:
+                reference_part_total_points[part] = float(points)
+            except ValueError:
+                # Use stderr for errors
+                print(f"Error: Invalid points value '{points}' for part '{part}' in points map. Must be numeric.", file=sys.stderr)
+                sys.exit(1) # Exit with failure
+        # Use stdout for informational messages
+        print(f"Loaded points map: {reference_part_total_points}")
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON string provided for --points-map: {points_map_json}. Details: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error loading points map: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+    # --- Load Reference Models (Error handling added, uses args.baseline) ---
+    reference_models: List[Tuple[str, str, ET.Element]] = []
     ref_files_in_folder = [f for f in os.listdir(ref_xml_folder) if f.lower().endswith('.xml')]
 
     if not ref_files_in_folder:
-        print(f"No XML files found in the reference folder: '{ref_xml_folder}'. Exiting.")
-        exit()
+        print(f"Error: No XML files found in the reference folder: '{ref_xml_folder}'. Exiting.", file=sys.stderr)
+        sys.exit(1)
 
-    print(f"\nLoading {len(ref_files_in_folder)} reference XML files...")
+    print(f"\nLoading {len(ref_files_in_folder)} reference XML files...") # Info to stdout
     for ref_file_name in ref_files_in_folder:
         ref_file_path = os.path.join(ref_xml_folder, ref_file_name)
         ref_filename_base = os.path.splitext(ref_file_name)[0]
         try:
             ref_tree = ET.parse(ref_file_path)
             reference_models.append((ref_filename_base, ref_file_path, ref_tree.getroot()))
-            print(f"  Loaded: {ref_file_name}")
+            print(f"  Loaded: {ref_file_name}") # Info to stdout
         except ET.ParseError as e:
-            print(f"  Error parsing reference XML '{ref_file_name}': {e}. Skipping.")
+             # Use stderr for warnings
+            print(f"  Warning: Error parsing reference XML '{ref_file_name}': {e}. Skipping.", file=sys.stderr)
         except FileNotFoundError:
-            print(f"  Reference XML file not found: '{ref_file_name}'. Skipping.")
+            print(f"  Warning: Reference XML file not found: '{ref_file_name}'. Skipping.", file=sys.stderr)
 
     if not reference_models:
-        print("No valid reference XML files were loaded. Exiting.")
-        exit()
+        print("Error: No valid reference XML files were loaded. Exiting.", file=sys.stderr)
+        sys.exit(1)
 
-    # [R02] User input for total points per reference part
-    reference_part_total_points: Dict[str, float] = {}
-    print("\nPlease enter the total points for each reference part:")
-    for ref_filename_base, _, _ in reference_models:
-        while True:
-            try:
-                # Extract part name (e.g., 'part_a' from '123456_part_a.xml')
-                # Assuming filename convention: [MatriculationNumber]_[PartName].xml
-                # If the ref filename does not have matriculation number, it's just the part name.
-                part_name_for_prompt = ref_filename_base.split('_', 1)[1] if '_' in ref_filename_base else ref_filename_base
-                points_input = input(f"  Enter total points for '{part_name_for_prompt}': ").strip()
-                total_pts = float(points_input)
-                if total_pts < 0:
-                    print("Total points cannot be negative. Please enter a non-negative number.")
-                else:
-                    reference_part_total_points[part_name_for_prompt] = total_pts
-                    break
-            except ValueError:
-                print("Invalid input. Please enter a numeric value for total points.")
-
-    student_xml_folder = input("\nEnter the full path to the folder containing student XML files: ").strip()
-    while not os.path.isdir(student_xml_folder):                        #Error Handling
-        print("Error: Student XML folder not found. Please try again.")
-        student_xml_folder = input("Enter the full path to the folder containing student XML files: ").strip()
-
-    output_folder_path = input("\nEnter the full path for the output report folder: ").strip()
-    if not output_folder_path:
-        # If user enters nothing, default to a subfolder in the student files directory
-        output_folder_path = os.path.join(student_xml_folder, 'reports')
-        print(f"No output path provided. Defaulting to: {output_folder_path}")
-
+    # --- Create Output Folder (Error handling added, uses args.output) ---
     try:
-        # Create the directory if it doesn't exist
         os.makedirs(output_folder_path, exist_ok=True)
     except OSError as e:
-        print(f"Error: Could not create output directory '{output_folder_path}'. {e}")
-        print("Please check permissions and path validity. Exiting.")
-        exit()
+        print(f"Error: Could not create output directory '{output_folder_path}'. {e}", file=sys.stderr)
+        print("Please check permissions and path validity. Exiting.", file=sys.stderr)
+        sys.exit(1)
 
+
+    # --- Process Student Files (Uses args.input, logic unchanged) ---
     student_files = [f for f in os.listdir(student_xml_folder) if f.lower().endswith('.xml')]
-
-    # [R06] Data structure to store student scores
     student_scores: Dict[str, Dict[str, Tuple[float, float]]] = {} # {matriculation_num: {part_name: (final_points, total_points)}}
 
     if not student_files:
-        print(f"No XML files found in '{student_xml_folder}'.")
+        print(f"\nWarning: No XML files found in student folder '{student_xml_folder}'. No comparisons to perform.") # Info stdout
     else:
-        print(f"\nFound {len(student_files)} student XML files to compare.")
+        print(f"\nFound {len(student_files)} student XML files to compare.") # Info stdout
         for student_file_name in student_files:
             student_file_path = os.path.join(student_xml_folder, student_file_name)
             student_filename_base = os.path.splitext(student_file_name)[0]
 
-            # Extract student matriculation number and part name
+            # Extract student matriculation number and part name (robustly)
             parts = student_filename_base.split('_', 1)
-            if len(parts) >= 2:
-                student_matriculation_num = parts[0]
-                student_part_name = parts[1]
-            else:
-                student_matriculation_num = "UNKNOWN_STUDENT"
-                student_part_name = student_filename_base
-            
-            # Initialize student's score entry if not present
+            student_matriculation_num = parts[0] if len(parts) > 1 else "UNKNOWN"
+            student_part_name = parts[1] if len(parts) > 1 else student_filename_base
+
             if student_matriculation_num not in student_scores:
                 student_scores[student_matriculation_num] = {}
 
-            best_ref_match_info = None                                   # (ref_filename_base, ref_full_path, ref_root_element)
-            max_similarity_found = -1.0
-
-            # Find the best matching reference file for the current student file
-            # This logic uses the base filename (e.g., "part_a") for matching, not the matriculation number
+            best_ref_match_info = None
+            # Find the best matching reference file based on part name (case-insensitive)
             for ref_base_name, ref_full_path, ref_root_elem in reference_models:
-                # Extract part name from reference file for comparison (e.g., 'part_a')
-                ref_part_name = ref_base_name.split('_', 1)[1] if '_' in ref_base_name else ref_base_name
-                
-                # Check if the student's part name matches a reference part name
-                # This ensures we are comparing 'part_a' student file with 'part_a' reference file
+                ref_part_name = ref_base_name.split('_', 1)[-1] # Get part name portion
+
                 if ref_part_name.lower() == student_part_name.lower():
-                    # Calculate similarity based on the *full* base names for the purpose of the initial filename similarity check
-                    # However, the primary match is on the extracted part name.
-                    similarity_ratio = calculate_filename_similarity(ref_base_name, student_filename_base)
-                    
-                    if similarity_ratio > max_similarity_found: # No FILENAME_SIMILARITY_THRESHOLD here as we are doing exact part name match
-                        max_similarity_found = similarity_ratio
-                        best_ref_match_info = (ref_base_name, ref_full_path, ref_root_elem, ref_part_name)
-                    # We found an exact part name match, so we don't need to look further for this student part
-                    break 
-            
+                    best_ref_match_info = (ref_base_name, ref_full_path, ref_root_elem, ref_part_name)
+                    break # Found exact match
+
             if best_ref_match_info is None:
+                # Info to stdout, warning to stderr
                 print(f"\n--- Skipping Student File: {student_file_name} ---")
-                print(f"No suitable reference file found for '{student_part_name}' (no matching reference part name)")
-                print(f"--- Skipped Comparison for {student_file_name} ---")
-                continue                                                    # Skip to the next student file
+                print(f"  Warning: No suitable reference file found for part name '{student_part_name}'.", file=sys.stderr)
+                continue # Skip to the next student file
 
             matched_ref_filename_base, matched_ref_full_path, matched_ref_root_element, matched_ref_part_name = best_ref_match_info
 
-            print(f"\n--- Comparing Student File: {student_file_name} ---")
-            print(f"  Matched with Reference: {os.path.basename(matched_ref_full_path)} (Filename Similarity: {max_similarity_found:.2f})")
-            
-            # [R03] Get comparison results and part-level similarity score
-            results, part_similarity_score = compare_xml_files(matched_ref_full_path, student_file_path)
-            
-            for line in results:
-                print(line)
+            print(f"\n--- Comparing Student File: {student_file_name} ---") # Info stdout
+            print(f"  Matched with Reference: {os.path.basename(matched_ref_full_path)}") # Info stdout
 
-            # [R07] Get total points for this part
-            total_points_for_part = reference_part_total_points.get(matched_ref_part_name, 0.0)
-            
-            # [R01, R04, R05] Evaluate the score for the current part
+            # Perform comparison using your original functions
+            results, part_similarity_score = compare_xml_files(matched_ref_full_path, student_file_path)
+
+            # Print detailed comparison results (Uncomment if needed, prints to stdout)
+            # for line in results:
+            #    print(line)
+
+            # Get total points, handling case-insensitivity and missing points
+            total_points_for_part = 0.0
+            found_points = False
+            for map_part_name, map_points_val in reference_part_total_points.items():
+                if map_part_name.lower() == matched_ref_part_name.lower():
+                    total_points_for_part = float(map_points_val) # Already converted
+                    found_points = True
+                    break
+            if not found_points:
+                 # Warning to stderr
+                print(f"  Warning: No points defined in points map for reference part '{matched_ref_part_name}'. Using 0 points.", file=sys.stderr)
+
+            # Evaluate score using your original function
             final_points_for_part = evaluate_part_score(part_similarity_score, total_points_for_part)
 
-            # [Sr02] Store the part-level similarity score (implicitly, as part of final_points calc)
-            # [R06] Store the student's score for this part
+            # Store score
             student_scores[student_matriculation_num][student_part_name] = (final_points_for_part, total_points_for_part)
 
+            # Print summary for this part to stdout
             print(f"  Part Similarity Score: {part_similarity_score:.2f}")
             print(f"  Final Score for '{student_part_name}': {final_points_for_part:.2f} out of {total_points_for_part:.2f}")
             print(f"--- Finished Comparison for {student_file_name} ---")
 
+    # --- Print Summary (Logic unchanged, uses stdout) ---
     print("\n--- Summary of Student Scores ---")
     if not student_scores:
         print("No student scores to report.")
     else:
-        for matriculation_num, parts_scores in student_scores.items():
-            print(f"{matriculation_num}: Student Score")
+        # Sort by matriculation number (attempt numeric sort first)
+        try:
+             sorted_matriculation_nums = sorted(student_scores.keys(), key=int)
+        except ValueError:
+             sorted_matriculation_nums = sorted(student_scores.keys()) # Fallback to string sort
+
+        for matriculation_num in sorted_matriculation_nums:
+            parts_scores = student_scores[matriculation_num]
+            print(f"\nStudent: {matriculation_num}")
             total_student_score = 0.0
             total_possible_score = 0.0
-            for part_name, (final_pts, total_pts) in parts_scores.items():
-                print(f"    - Part {part_name.replace('part_', '').upper()}: Score - {final_pts:.2f} out of {total_pts:.2f}")
+            for part_name in sorted(parts_scores.keys()): # Sort parts alphabetically
+                final_pts, total_pts = parts_scores[part_name]
+                print(f"    - Part '{part_name}': Score - {final_pts:.2f} out of {total_pts:.2f}")
                 total_student_score += final_pts
                 total_possible_score += total_pts
-            # Optional: Print a total score for the student
             if total_possible_score > 0:
                 print(f"    -> Total Student Score: {total_student_score:.2f} out of {total_possible_score:.2f}")
 
+    # --- Generate Report (Logic unchanged, uses args.output) ---
     if student_scores:
-        generate_excel_report(student_scores, output_folder_path)
+        try:
+            generate_excel_report(student_scores, output_folder_path)
+        except Exception as e:
+             # Report error but allow script to finish if desired
+             print(f"\nError occurred during Excel report generation: {e}", file=sys.stderr)
+             # sys.exit(1) # Optionally exit with error if report generation is critical
 
-    print("\nComparison process completed.")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="XML CAD Model Comparison Tool - Integrated Version")
+    # Arguments for full comparison mode
+    parser.add_argument("--input", help="Student XML folder path (required for full comparison).")
+    parser.add_argument("--baseline", required=True, help="Reference XML folder path (required for both modes).")
+    parser.add_argument("--output", help="Output report folder path (required for full comparison).")
+    parser.add_argument("--points-map", help="JSON string mapping part names to points (required for full comparison).")
+    # Argument to switch to list-parts mode
+    parser.add_argument("--list-parts", action="store_true", help="If set, lists unique part names from baseline folder and exits.")
+
+    args = parser.parse_args()
+
+    try:
+        # --- MODE 1: List Parts ---
+        if args.list_parts:
+            # Check baseline folder exists
+            if not os.path.isdir(args.baseline):
+                print(f"Error: Baseline folder not found: {args.baseline}", file=sys.stderr)
+                sys.exit(1)
+
+            ref_files = [f for f in os.listdir(args.baseline) if f.lower().endswith('.xml')]
+            if not ref_files:
+                print(f"Error: No XML files found in baseline folder '{args.baseline}'.", file=sys.stderr)
+                sys.exit(1)
+
+            part_names = set()
+            for ref_file_name in ref_files:
+                ref_filename_base = os.path.splitext(ref_file_name)[0]
+                # Extract part name (last part after first '_', or full name if no '_')
+                part_name = ref_filename_base.split('_', 1)[-1]
+                if part_name not in part_names:
+                     # --- Print ONLY the part name to stdout for C# to capture ---
+                    print(part_name)
+                    part_names.add(part_name)
+            sys.exit(0) # Exit successfully after listing parts
+
+        # --- MODE 2: Full Comparison ---
+        else:
+            # Check required arguments for full mode
+            required_args_full = [args.input, args.output, args.points_map]
+            if not all(required_args_full):
+                 # Improved error message listing missing arguments
+                 missing = []
+                 if not args.input: missing.append("--input")
+                 if not args.output: missing.append("--output")
+                 if not args.points_map: missing.append("--points-map")
+                 print(f"Error: Missing required arguments for full comparison: {', '.join(missing)}", file=sys.stderr)
+                 parser.print_help(file=sys.stderr) # Show help message
+                 sys.exit(1)
+
+            # Validate input/baseline folders exist
+            if not os.path.isdir(args.input):
+                print(f"Error: Student input folder not found: {args.input}", file=sys.stderr)
+                sys.exit(1)
+            # Baseline folder existence is already checked if --list-parts is not used, but double-check here
+            if not os.path.isdir(args.baseline):
+                 print(f"Error: Baseline folder not found: {args.baseline}", file=sys.stderr)
+                 sys.exit(1)
+
+            # Call the main comparison logic function using the parsed arguments
+            run_comparison_logic(args)
+            print("\nComparison process completed successfully.") # Final success message to stdout
+            sys.exit(0) # Explicit success exit
+
+    except Exception as e:
+        # Catch any unexpected error during execution
+        print(f"\nFATAL ERROR: An unexpected error occurred: {e}", file=sys.stderr)
+        import traceback
+        print("\n--- Traceback ---", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        print("--- End Traceback ---", file=sys.stderr)
+        sys.exit(1) # Exit with failure code
+

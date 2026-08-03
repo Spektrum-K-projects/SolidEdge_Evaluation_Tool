@@ -18,109 +18,134 @@ namespace xml_data_extraction
         [STAThread]
         static void Main(string[] args)
         {
-            Console.WriteLine("Enter Source Folder Path: ");
-            string rootFolder = Console.ReadLine().Trim();
+            // --- MODIFICATION: Add variables for our new arguments ---
+            string rootFolder = "";
+            string outputFolder = "";
 
-            if (!Directory.Exists(rootFolder))
+            // --- MODIFICATION: Simple loop to parse command-line args ---
+            for (int i = 0; i < args.Length; i++)
             {
-                Console.WriteLine("Folder not found.");
-                return;
+                if (args[i] == "--input" && i + 1 < args.Length)
+                {
+                    rootFolder = args[i + 1];
+                }
+                else if (args[i] == "--output" && i + 1 < args.Length)
+                {
+                    outputFolder = args[i + 1];
+                }
             }
 
-            Console.WriteLine("Enter Destination Folder Path: ");
-            string outputFolder = Console.ReadLine().Trim();
-
-            if (!Directory.Exists(outputFolder))
-            {
-                Console.WriteLine("Folder not found.");
-                return;
-            }
-
-            SolidEdgeFramework.Application seApp = null;
-
+            // --- MODIFICATION: Add full try...catch block for error handling ---
             try
             {
-                seApp = (SolidEdgeFramework.Application)MarshalHelper.GetActiveObject("SolidEdge.Application");
-            }
-            catch
-            {
-                Console.WriteLine("Could not attach to Solid Edge. Ensure it is running.");
-                return;
-            }
+                // --- MODIFICATION: Validate arguments ---
+                if (string.IsNullOrEmpty(rootFolder) || string.IsNullOrEmpty(outputFolder))
+                {
+                    Console.Error.WriteLine("ERROR: Both --input and --output arguments are required.");
+                    System.Environment.Exit(1); // --- MODIFICATION: Exit with failure code
+                }
 
-            var subFiles = Directory.GetFiles(rootFolder, "*.par", SearchOption.AllDirectories);
+                // --- MODIFICATION: Console.ReadLine() calls REMOVED ---
 
+                if (!Directory.Exists(rootFolder))
+                {
+                    // --- MODIFICATION: Write errors to Console.Error ---
+                    Console.Error.WriteLine($"ERROR: Input folder not found: {rootFolder}");
+                    System.Environment.Exit(1); // --- MODIFICATION: Exit with failure code
+                }
 
-            foreach (var subFile in subFiles)
-            {
-                Console.WriteLine($"\n--- Processing: {subFile}");
-                SolidEdgeDocument doc = null;
+                if (!Directory.Exists(outputFolder))
+                {
+                    Console.Error.WriteLine($"ERROR: Output folder not found: {outputFolder}");
+                    System.Environment.Exit(1); // --- MODIFICATION: Exit with failure code
+                }
+
+                SolidEdgeFramework.Application seApp = null;
 
                 try
                 {
-                    //File Properties Extract
-                    List<XElement> featureXmlList = new List<XElement>();
-                    Console.WriteLine("  Extracting metadata...");
-                    var prop_report = PR01_file_properties_extract.Properties(subFile);
-                    featureXmlList.Add(prop_report);
-
-                    doc = seApp.Documents.Open(subFile);
-
-                    if (doc is SolidEdgePart.PartDocument partDoc)
-                    {
-
-                        featureXmlList.Add(DO01_part_data_extractor.PartExtract(partDoc));
-                    }
-
-                    else if (doc is SolidEdgePart.SheetMetalDocument sheetDoc)
-                    {
-                        //---Add Sheet Document Extractor function code here...
-                        continue;
-                    }
-
-                    //---More Document functions to be added here
-
-                    else
-                    {
-                        Console.WriteLine("  Skipped: not a PartDocument");
-                    }
-
-                    string parentFolder = Path.GetFileName(Path.GetDirectoryName(subFile));
-                    string fileName = Path.GetFileNameWithoutExtension(subFile);
-                    string baseName = $"{parentFolder}_{fileName}.xml";
-                    //string xmlName = baseName + "_Properties.xml";
-                    string xmlFullPath = Path.Combine(outputFolder, baseName);
-
-                    // now save to that file
-                    //prop_report.Save(xmlFullPath);
-
-                    var rootElement = new XElement("Evaluation");
-                    foreach (var elements in featureXmlList)
-                    {
-                        rootElement.Add(elements);
-                    }
-
-                    rootElement.Save(xmlFullPath);
-                    Console.WriteLine($"  Saved XML: {xmlFullPath}");
+                    seApp = (SolidEdgeFramework.Application)MarshalHelper.GetActiveObject("SolidEdge.Application");
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Console.WriteLine("  Error opening/extracting: " + ex.Message);
+                    Console.Error.WriteLine("ERROR: Could not attach to Solid Edge. Ensure it is running.");
+                    System.Environment.Exit(1); // --- MODIFICATION: Exit with failure code
                 }
-                finally
+
+                var subFiles = Directory.GetFiles(rootFolder, "*.par", SearchOption.AllDirectories);
+
+                foreach (var subFile in subFiles)
                 {
-                    if (doc != null)
+                    Console.WriteLine($"\n--- Processing: {subFile}");
+                    SolidEdgeDocument doc = null;
+
+                    try
                     {
-                        doc.Close();
-                        Marshal.ReleaseComObject(doc);
+                        //File Properties Extract
+                        List<XElement> featureXmlList = new List<XElement>();
+                        Console.WriteLine("  Extracting metadata...");
+                        // --- MODIFICATION: Assuming these are in the same namespace or project
+                        var prop_report = PR01_file_properties_extract.Properties(subFile);
+                        featureXmlList.Add(prop_report);
+
+                        doc = seApp.Documents.Open(subFile);
+
+                        if (doc is SolidEdgePart.PartDocument partDoc)
+                        {
+
+                            featureXmlList.Add(Documents.DO01_part_data_extractor.PartExtract(partDoc));
+                        }
+                        else if (doc is SolidEdgePart.SheetMetalDocument sheetDoc)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            Console.WriteLine("  Skipped: not a PartDocument");
+                        }
+
+                        string parentFolder = Path.GetFileName(Path.GetDirectoryName(subFile));
+                        string fileName = Path.GetFileNameWithoutExtension(subFile);
+                        string baseName = $"{parentFolder}_{fileName}.xml";
+                        string xmlFullPath = Path.Combine(outputFolder, baseName);
+
+                        var rootElement = new XElement("Evaluation");
+                        foreach (var elements in featureXmlList)
+                        {
+                            rootElement.Add(elements);
+                        }
+
+                        rootElement.Save(xmlFullPath);
+                        Console.WriteLine($"  Saved XML: {xmlFullPath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        // --- MODIFICATION: Write errors to Console.Error ---
+                        Console.Error.WriteLine($"  Error opening/extracting {subFile}: " + ex.Message);
+                        // Don't exit here, just continue to the next file
+                    }
+                    finally
+                    {
+                        if (doc != null)
+                        {
+                            doc.Close();
+                            Marshal.ReleaseComObject(doc);
+                        }
                     }
                 }
+
+                Console.WriteLine("\nAll files processed. Disconnecting from Solid Edge.");
+                Marshal.ReleaseComObject(seApp);
+
+                // --- MODIFICATION: Exit with success code ---
+                System.Environment.Exit(0);
             }
-
-            Console.WriteLine("\nAll files processed. Disconnecting from Solid Edge.");
-            Marshal.ReleaseComObject(seApp);
-
-
+            catch (Exception ex)
+            {
+                // --- MODIFICATION: Catch any unexpected fatal errors ---
+                Console.Error.WriteLine($"FATAL ERROR: {ex.Message}");
+                System.Environment.Exit(1);
+            }
         }
     }
 }
