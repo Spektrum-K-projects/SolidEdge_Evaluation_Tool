@@ -1,15 +1,16 @@
-﻿using System;
+﻿using SolidEdgeConstants;
+using SolidEdgeFramework;
+using SolidEdgeFrameworkSupport;
+using SolidEdgeGeometry;
+using SolidEdgePart;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
-using System.Collections.Generic;
-using SolidEdgeFramework;
-using SolidEdgeFrameworkSupport;
-using SolidEdgePart;
-using SolidEdgeGeometry;
-using SolidEdgeConstants;
-using xml_data_extraction.Properties;
 using xml_data_extraction.Documents;
+using xml_data_extraction.Features;
+using xml_data_extraction.Properties;
 
 namespace xml_data_extraction
 {
@@ -94,6 +95,8 @@ namespace xml_data_extraction
                         {
 
                             featureXmlList.Add(Documents.DO01_part_data_extractor.PartExtract(partDoc));
+                            featureXmlList.Insert(0, PR01_file_properties_extract.UnitsOfMeasure_Extract(partDoc));
+                            featureXmlList.Insert(1, PR01_file_properties_extract.BaseStyle_Extract(partDoc));
                         }
                         else if (doc is SolidEdgePart.SheetMetalDocument sheetDoc)
                         {

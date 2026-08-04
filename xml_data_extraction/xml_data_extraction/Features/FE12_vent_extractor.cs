@@ -1,89 +1,172 @@
 ﻿using SolidEdgePart;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace xml_data_extraction.Features
 {
     internal class FE12_vent_extractor
     {
+        private static void TryAdd(XElement parent, string label, Func<object> getter)
+        {
+            try
+            {
+                parent.Add(new XElement(label, getter()));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Vent {label}: {ex.Message} | Inner: {ex.InnerException?.Message}");
+            }
+        }
+
         public static XElement Vent(Vent vent)
         {
             XElement ventElements = new XElement("Vent", new XAttribute("Type", -85880079));
 
-            //Array dimensionsArray = Array.CreateInstance(typeof(double), 0);
-
             try
             {
-                var name = vent.Name;
-                ventElements.Add(new XElement("name", name));
+                TryAdd(ventElements, "name", () => vent.Name);
+                TryAdd(ventElements, "type", () => vent.Type);
+                TryAdd(ventElements, "modelingModeType", () => vent.ModelingModeType);
 
-                var type = vent.Type;
-                ventElements.Add(new XElement("type", type));
+                TryAdd(ventElements, "extentSide", () => vent.ExtentSide);
 
-                var extentDepth = vent.ExtentDepth;
-                ventElements.Add(new XElement("extentDepth", extentDepth));
+                try
+                {
+                    var extentType = vent.ExtentType;
+                    ventElements.Add(new XElement("extentType", extentType));
 
-                var extentSide = vent.ExtentSide;
-                ventElements.Add(new XElement("extentSide", extentSide));
+                    if (extentType == VentExtentTypeConstants.seVentExtentTypeFinite)
+                    {
+                        try
+                        {
+                            ventElements.Add(new XElement("extentDepth", vent.ExtentDepth));
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Vent extentDepth: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                        }
+                    }
+                    else
+                    {
+                        ventElements.Add(new XElement("extentDepth", new XAttribute("NotApplicable", extentType.ToString())));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Vent extentType: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var extentType = vent.ExtentType;
-                ventElements.Add(new XElement("extentType", extentType));
+                TryAdd(ventElements, "ribDepth", () => vent.RibDepth);
+                TryAdd(ventElements, "ribThickness", () => vent.RibThickness);
+                TryAdd(ventElements, "ribExtension", () => vent.RibExtension);
+                TryAdd(ventElements, "ribOffset", () => vent.RibOffset);
 
-                var ventModelingModeType = vent.ModelingModeType;
-                ventElements.Add(new XElement("modelingModeType", ventModelingModeType));
+                TryAdd(ventElements, "roundEnabled", () => vent.RoundEnabled);
+                TryAdd(ventElements, "roundRadius", () => vent.RoundRadius);
 
-                var ribDepth = vent.RibDepth;
-                ventElements.Add(new XElement("ribDepth", ribDepth));
+                TryAdd(ventElements, "sparDepth", () => vent.SparDepth);
+                TryAdd(ventElements, "sparExtension", () => vent.SparExtension);
+                TryAdd(ventElements, "sparOffset", () => vent.SparOffset);
+                TryAdd(ventElements, "sparThickness", () => vent.SparThickness);
 
-                var ribThickness = vent.RibThickness;
-                ventElements.Add(new XElement("ribThickness", ribThickness));
+                TryAdd(ventElements, "draftAngle", () => vent.DraftAngle);
+                TryAdd(ventElements, "draftEnabled", () => vent.DraftEnabled);
+                TryAdd(ventElements, "draftFromOutsideEdges", () => vent.DraftFromOutsideEdges);
+                TryAdd(ventElements, "draftSide", () => vent.DraftSide);
 
-                var ribExtension = vent.RibExtension;
-                ventElements.Add(new XElement("ribExtension", ribExtension));
+                TryAdd(ventElements, "status", () => { dynamic d = vent; return d.Status; });
+                TryAdd(ventElements, "suppress", () => { dynamic d = vent; return d.Suppress; });
 
-                var ribOffset = vent.RibOffset;
-                ventElements.Add(new XElement("ribOffset", ribOffset));
+                try
+                {
+                    Array dims = Array.CreateInstance(typeof(object), 0);
+                    vent.GetDimensions(out int numDims, ref dims);
+                    ventElements.Add(new XElement("Dimensions", new XAttribute("Count", numDims)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Vent GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var roundEnabled = vent.RoundEnabled;
-                ventElements.Add(new XElement("roundEnabled", roundEnabled));
+                try
+                {
+                    vent.Range(out double x1, out double y1, out double z1, out double x2, out double y2, out double z2);
+                    ventElements.Add(new XElement("Range",
+                        new XAttribute("X1", x1), new XAttribute("Y1", y1), new XAttribute("Z1", z1),
+                        new XAttribute("X2", x2), new XAttribute("Y2", y2), new XAttribute("Z2", z2)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Vent GetRange: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var roundRadius = vent.RoundRadius;
-                ventElements.Add(new XElement("roundRadius", roundRadius));
+                try
+                {
+                    FeatureStatusConstants statusEx = vent.GetStatusEx(out object description);
+                    ventElements.Add(new XElement("statusEx",
+                        new XAttribute("Code", statusEx), new XAttribute("Description", description?.ToString() ?? "")));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Vent GetStatusEx: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var sparDepth = vent.SparDepth;
-                ventElements.Add(new XElement("sparDepth", sparDepth));
+                try
+                {
+                    Array boundaryCurves = Array.CreateInstance(typeof(object), 0);
+                    vent.GetBoundaryCurves(out int numBoundary, ref boundaryCurves);
+                    var boundaryElement = new XElement("BoundaryCurves", new XAttribute("Count", numBoundary));
+                    for (int i = 0; i < boundaryCurves.Length; i++)
+                    {
+                        var curveObj = boundaryCurves.GetValue(i);
+                        boundaryElement.Add(new XElement("Curve", new XAttribute("Index", i), new XAttribute("Type", curveObj?.GetType().Name ?? "null")));
+                    }
+                    ventElements.Add(boundaryElement);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Vent GetBoundaryCurves: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var sparExtension = vent.SparExtension;
-                ventElements.Add(new XElement("sparExtension", sparExtension));
+                try
+                {
+                    Array ribCurves = Array.CreateInstance(typeof(object), 0);
+                    vent.GetRibCurves(out int numRib, ref ribCurves);
+                    var ribElement = new XElement("RibCurves", new XAttribute("Count", numRib));
+                    for (int i = 0; i < ribCurves.Length; i++)
+                    {
+                        var curveObj = ribCurves.GetValue(i);
+                        ribElement.Add(new XElement("Curve", new XAttribute("Index", i), new XAttribute("Type", curveObj?.GetType().Name ?? "null")));
+                    }
+                    ventElements.Add(ribElement);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Vent GetRibCurves: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var sparOffset = vent.SparOffset;
-                ventElements.Add(new XElement("sparOffset", sparOffset));
-
-                var sparThickness = vent.SparThickness;
-                ventElements.Add(new XElement("sparThickness", sparThickness));
-
-                var draftAngle = vent.DraftAngle;
-                ventElements.Add(new XElement("draftAngle", draftAngle));
-
-                var draftEnabled = vent.DraftEnabled;
-                ventElements.Add(new XElement("draftEnabled", draftEnabled));
-
-                var draftFromOutsideEdges = vent.DraftFromOutsideEdges;
-                ventElements.Add(new XElement("draftFromOutsideEdges", draftFromOutsideEdges));
-
-                var draftSide = vent.DraftSide;
-                ventElements.Add(new XElement("draftSide", draftSide));
-
-                //vent.GetDimensions(out int numDim, ref dimensionsArray);
+                try
+                {
+                    Array sparCurves = Array.CreateInstance(typeof(object), 0);
+                    vent.GetSparCurves(out int numSpar, ref sparCurves);
+                    var sparElement = new XElement("SparCurves", new XAttribute("Count", numSpar));
+                    for (int i = 0; i < sparCurves.Length; i++)
+                    {
+                        var curveObj = sparCurves.GetValue(i);
+                        sparElement.Add(new XElement("Curve", new XAttribute("Index", i), new XAttribute("Type", curveObj?.GetType().Name ?? "null")));
+                    }
+                    ventElements.Add(sparElement);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Vent GetSparCurves: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Vent: Error Message:{ex.Message}");
+                // Should rarely fire now - everything above is individually isolated.
+                Console.WriteLine($"Vent: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
                 return new XElement("Vent", "Error");
             }
             finally
@@ -95,9 +178,8 @@ namespace xml_data_extraction.Features
                 }
             }
 
-            Console.WriteLine($"Created Vent XML list");
+            Console.WriteLine("Created Vent XML list");
             return ventElements;
-
         }
     }
 }

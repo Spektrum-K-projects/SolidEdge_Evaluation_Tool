@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "xml_data_extraction": {
+      "commandName": "Project",
+      "commandLineArgs": "--input \"C:\\Users\\prade\\Downloads\\Tool Test\\Sample Test\\0. Evaluation Reference Model\" --output \"C:\\Users\\prade\\Downloads\\Tool Test\\Sample Test\\4. Reference XML FIles\""
+    }
+  }
+}

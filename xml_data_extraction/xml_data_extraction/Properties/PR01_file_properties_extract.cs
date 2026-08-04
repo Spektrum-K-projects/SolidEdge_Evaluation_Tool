@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using SolidEdgeFileProperties;
 using SolidEdgePart;
+using SolidEdgeFramework;
 
 namespace xml_data_extraction.Properties
 {
@@ -15,15 +16,15 @@ namespace xml_data_extraction.Properties
         [STAThread]
         public static XElement Properties(string? subFile)
         {
-            PropertySets propertySets = null;
+            SolidEdgeFileProperties.PropertySets propertySets = null;
             SolidEdgeFileProperties.Properties properties = null;
-            Property property = null;
+            SolidEdgeFileProperties.Property property = null;
 
             var prop_dict = new Dictionary<string, object>();
 
             try
             {
-                propertySets = new PropertySets();
+                propertySets = new SolidEdgeFileProperties.PropertySets();
 
                 //Command to specify file path
                 string file_path = subFile;
@@ -40,7 +41,7 @@ namespace xml_data_extraction.Properties
 
                     for (int j = 0; j < properties.Count; j++)
                     {
-                        property = (Property)properties[j];
+                        property = (SolidEdgeFileProperties.Property)properties[j];
 
                         if (property.Name == "Title")
                         {
@@ -133,6 +134,124 @@ namespace xml_data_extraction.Properties
             var xmlProps = new XElement("properties", prop_dict.Select(kv => new XElement("property", 
                                             new XAttribute("Name", kv.Key), kv.Value?.ToString() ?? string.Empty)));
             return xmlProps;
+        }
+
+        public static XElement UnitsOfMeasure_Extract(PartDocument partDoc)
+        {
+            var unitsElement = new XElement("UnitsOfMeasure");
+
+            try
+            {
+                var unitsOfMeasure = partDoc.UnitsOfMeasure;
+                unitsElement.Add(new XAttribute("Count", unitsOfMeasure.Count));
+
+                for (int u = 1; u <= unitsOfMeasure.Count; u++)
+                {
+                    var unit = unitsOfMeasure.Item(u);
+                    var unitElement = new XElement("Unit");
+
+                    try
+                    {
+                        unitElement.Add(new XAttribute("Type", unit.Type));
+                        unitElement.Add(new XAttribute("Units", unit.Units));
+                        unitElement.Add(new XAttribute("Precision", unit.Precision));
+
+                        // NEW: friendly decode for the two categories that matter most
+                        if (unit.Type == UnitTypeConstants.igUnitDistance)
+                        {
+                            unitElement.Add(new XAttribute("UnitsName", ((UnitOfMeasureLengthReadoutConstants)unit.Units).ToString()));
+                        }
+                        else if (unit.Type == UnitTypeConstants.igUnitAngle)
+                        {
+                            unitElement.Add(new XAttribute("UnitsName", ((UnitOfMeasureAngleReadoutConstants)unit.Units).ToString()));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        unitElement.Add(new XAttribute("Error", ex.Message));
+                    }
+                    finally
+                    {
+                        if (unit != null)
+                        {
+                            Marshal.ReleaseComObject(unit);
+                            unit = null;
+                        }
+                    }
+
+                    unitsElement.Add(unitElement);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"UnitsOfMeasure: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
+            }
+
+            return unitsElement;
+        }
+
+        public static XElement BaseStyle_Extract(PartDocument partDoc)
+        {
+            var baseStylesElement = new XElement("BaseStyles");
+
+            foreach (PartBaseStylesConstants styleType in Enum.GetValues(typeof(PartBaseStylesConstants)))
+            {
+                var styleElement = new XElement("BaseStyle", new XAttribute("Category", styleType));
+
+                try
+                {
+                    partDoc.GetBaseStyle(styleType, out FaceStyle baseStyle);
+
+                    if (baseStyle == null)
+                    {
+                        styleElement.Add(new XAttribute("NotSet", true));
+                    }
+                    else
+                    {
+                        try { styleElement.Add(new XAttribute("StyleName", baseStyle.StyleName ?? "")); }
+                        catch (Exception ex) { styleElement.Add(new XAttribute("StyleNameError", ex.Message)); }
+
+                        try { styleElement.Add(new XAttribute("Material", baseStyle.Material ?? "")); }
+                        catch (Exception ex) { styleElement.Add(new XAttribute("MaterialError", ex.Message)); }
+
+                        try
+                        {
+                            styleElement.Add(new XElement("DiffuseColor",
+                                new XAttribute("R", baseStyle.DiffuseRed),
+                                new XAttribute("G", baseStyle.DiffuseGreen),
+                                new XAttribute("B", baseStyle.DiffuseBlue)));
+                        }
+                        catch (Exception ex) { styleElement.Add(new XAttribute("DiffuseColorError", ex.Message)); }
+
+                        try
+                        {
+                            styleElement.Add(new XElement("SpecularColor",
+                                new XAttribute("R", baseStyle.SpecularRed),
+                                new XAttribute("G", baseStyle.SpecularGreen),
+                                new XAttribute("B", baseStyle.SpecularBlue)));
+                        }
+                        catch (Exception ex) { styleElement.Add(new XAttribute("SpecularColorError", ex.Message)); }
+
+                        try
+                        {
+                            styleElement.Add(new XElement("AmbientColor",
+                                new XAttribute("R", baseStyle.AmbientRed),
+                                new XAttribute("G", baseStyle.AmbientGreen),
+                                new XAttribute("B", baseStyle.AmbientBlue)));
+                        }
+                        catch (Exception ex) { styleElement.Add(new XAttribute("AmbientColorError", ex.Message)); }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"BaseStyle {styleType}: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
+                    styleElement.Add(new XAttribute("Error", ex.Message));
+                }
+
+                baseStylesElement.Add(styleElement);
+            }
+
+            return baseStylesElement;
         }
     }
 }

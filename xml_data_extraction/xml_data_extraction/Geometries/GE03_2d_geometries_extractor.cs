@@ -428,7 +428,7 @@ namespace xml_data_extraction.Geometries
 
             try
             {
-                seEllipticalArcs = (EllipticalArcs2d)profile.ElliticalArcs2d;
+                seEllipticalArcs = (EllipticalArcs2d)profile.EllipticalArcs2d;
 
                 if (seEllipticalArcs != null && seEllipticalArcs.Count > 0)
                 {
@@ -539,7 +539,7 @@ namespace xml_data_extraction.Geometries
 
             try
             {
-                seBSplines = (BSplineCurves2d)profile.BSplinesCurves2d;
+                seBSplines = (BSplineCurves2d)profile.BSplineCurves2d;
 
                 if (seBSplines != null && seBSplines.Count > 0)
                 { 

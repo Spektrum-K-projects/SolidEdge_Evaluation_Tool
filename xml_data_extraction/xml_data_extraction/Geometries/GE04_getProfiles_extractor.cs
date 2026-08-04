@@ -44,6 +44,18 @@ namespace xml_data_extraction.Geometries
                 {
                     hole.GetProfiles(out numProfiles, ref profilesArray);
                 }
+                else if (feature is HelixProtrusion helixProtrusion)
+                {
+                    helixProtrusion.GetProfiles(out numProfiles, ref profilesArray);
+                }
+                else if (feature is HelixCutout helixCutout)
+                {
+                    helixCutout.GetProfiles(out numProfiles, ref profilesArray);
+                }
+                else if (feature is WebNetwork webNetworkFeature)
+                {
+                    webNetworkFeature.GetProfiles(out numProfiles, ref profilesArray);
+                }
                 else
                 {
                     profilesRoot.Add(new XElement("Error", "Unsupported feature type for GetProfiles()"));

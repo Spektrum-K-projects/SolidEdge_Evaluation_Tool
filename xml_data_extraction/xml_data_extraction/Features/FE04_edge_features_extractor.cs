@@ -8,64 +8,101 @@ namespace xml_data_extraction.Features
     internal class FE04_edge_features_extractor
     {
         //Chamfer Data Extraction
+        private static void TryAdd(XElement parent, string label, Func<object> getter)
+        {
+            try
+            {
+                parent.Add(new XElement(label, getter()));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chamfer {label}: {ex.Message} | Inner: {ex.InnerException?.Message}");
+            }
+        }
+
+        //Chamfer Data Extraction
         public static XElement Chamfer(Chamfer chamfer)
         {
             XElement chamferElements = new XElement("Chamfer", new XAttribute("Type", 462094742));
 
             try
             {
-                var chamfer_Name = chamfer.Name;
-                chamferElements.Add(new XElement("Name", chamfer_Name));
-                //Console.WriteLine($"CHAMFER. Name: {chamfer_Name}");
+                TryAdd(chamferElements, "Name", () => chamfer.Name);
+                TryAdd(chamferElements, "modelingModeType", () => chamfer.ModelingModeType);
 
-                //var chamfer_ref_face = chamfer.ChamferReferenceFace;
-                //Console.WriteLine($"CHAMFER. Referenceface: {chamfer_ref_face}");
+                FeaturePropertyConstants chamferType = chamfer.ChamferType;
+                chamferElements.Add(new XElement("type", chamferType));
 
-                var chamfer_type = chamfer.ChamferType;
-                chamferElements.Add(new XElement("type", chamfer_type));
-                //Console.WriteLine($"CHAMFER. Chamfer Type: {chamfer_type}");
-
-                var chamfer_set_angle = chamfer.ChamferSetbackAngle;
-                if (chamfer_type != SolidEdgePart.FeaturePropertyConstants.igChamfer2Setbacks)
+                if (chamferType != FeaturePropertyConstants.igChamfer2Setbacks)
                 {
-                    chamferElements.Add(new XElement("setback_angle", chamfer_set_angle));
-                    //Console.WriteLine($"CHAMFER. Setback Angle: {chamfer_set_angle}");
+                    TryAdd(chamferElements, "setback_angle", () => chamfer.ChamferSetbackAngle);
                 }
                 else
                 {
                     chamferElements.Add(new XElement("setback_angle", "not_applicable"));
                 }
-                
-                var chamfer_set_val_1 = chamfer.ChamferSetbackValue1;
-                if (chamfer_set_val_1 != null)
+
+                TryAdd(chamferElements, "setback_value_1", () => chamfer.ChamferSetbackValue1);
+
+                if (chamferType != FeaturePropertyConstants.igChamfer45degSetback)
                 {
-                    chamferElements.Add(new XElement("setback_value_1", chamfer_set_val_1));
-                    //Console.WriteLine($"CHAMFER. Setback Value 1: {chamfer_set_val_1}");
-                }
-                else
-                {
-                    chamferElements.Add(new XElement("setback_value_1", "null"));
-                }
-                                
-                if (chamfer_type != SolidEdgePart.FeaturePropertyConstants.igChamfer45degSetback)
-                {
-                    var chamfer_set_val_2 = chamfer.ChamferSetbackValue2;
-                    chamferElements.Add(new XElement("setback_value_2", chamfer_set_val_2));
-                    //Console.WriteLine($"CHAMFER. Setback Value 2: {chamfer_set_val_2}");
+                    TryAdd(chamferElements, "setback_value_2", () => chamfer.ChamferSetbackValue2);
                 }
                 else
                 {
                     chamferElements.Add(new XElement("setback_value_2", "not_applicable"));
                 }
 
-            }
+                try
+                {
+                    dynamic dynChamfer = chamfer;
+                    chamferElements.Add(new XElement("status", dynChamfer.Status));
+                    chamferElements.Add(new XElement("suppress", dynChamfer.Suppress));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Chamfer GetStatus/Suppress: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
+                try
+                {
+                    FeatureStatusConstants statusEx = chamfer.GetStatusEx(out object description);
+                    chamferElements.Add(new XElement("statusEx",
+                        new XAttribute("Code", statusEx), new XAttribute("Description", description?.ToString() ?? "")));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Chamfer GetStatusEx: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                try
+                {
+                    Array dims = Array.CreateInstance(typeof(object), 0);
+                    chamfer.GetDimensions(out int numDims, ref dims);
+                    chamferElements.Add(new XElement("Dimensions", new XAttribute("Count", numDims)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Chamfer GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                try
+                {
+                    chamfer.Range(out double x1, out double y1, out double z1, out double x2, out double y2, out double z2);
+                    chamferElements.Add(new XElement("Range",
+                        new XAttribute("X1", x1), new XAttribute("Y1", y1), new XAttribute("Z1", z1),
+                        new XAttribute("X2", x2), new XAttribute("Y2", y2), new XAttribute("Z2", z2)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Chamfer GetRange: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"Chamfer: Error Message:{ex.Message}{ex.InnerException}");
-                return new XElement("Chamfer");
+                Console.WriteLine($"Chamfer: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
+                return new XElement("Chamfer", "Error");
             }
-
             finally
             {
                 if (chamfer != null)
@@ -73,7 +110,6 @@ namespace xml_data_extraction.Features
                     Marshal.ReleaseComObject(chamfer);
                     chamfer = null;
                 }
-
             }
 
             Console.WriteLine($"\t Created Chamfer Feature XML list");

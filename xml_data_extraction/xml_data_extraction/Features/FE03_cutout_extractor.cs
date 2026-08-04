@@ -82,7 +82,7 @@ namespace xml_data_extraction.Features
                                                             out TreatmentCrownTypeConstants treatment2CrownType, out TreatmentCrownSideConstants treatment2CrownSide,
                                                             out TreatmentCrownCurvatureSideConstants treatment2CrownCurvatureSide, out double treatment2CrownRadiusOrOffset,
                                                             out double treatment2CrownTakeOffAngle);
-                cutoutElements.Add(new XElement("Direction1Treatment",
+                cutoutElements.Add(new XElement("Direction2Treatment",
                                             new XElement("treatment_type", treatment2Type.ToString()),
                                             new XElement("draft_side", draft2Side.ToString()),
                                             new XElement("treatment_draft_angle", treatmentDraftAngle2),
@@ -149,8 +149,22 @@ namespace xml_data_extraction.Features
 
                 helixCutoutElements.Add(new XElement("modelingModeType", helixCutout.ModelingModeType));
 
+                try
+                {
+                    Array dims = Array.CreateInstance(typeof(object), 0);
+                    helixCutout.GetDimensions(out int numDims, ref dims);  
+                    helixCutoutElements.Add(new XElement("Dimensions", new XAttribute("Count", numDims)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"HelixProtrusion GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
                 var profile_extract = GE04_getProfiles_extractor.getProfile_extract(helixCutout);
                 helixCutoutElements.Add(profile_extract);
+
+
+
             }
 
             catch (Exception ex)

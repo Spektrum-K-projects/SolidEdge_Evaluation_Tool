@@ -273,6 +273,17 @@ namespace xml_data_extraction.Features
 
                 var profile_extract = GE04_getProfiles_extractor.getProfile_extract(helixProtrusion);
                 helixProtrusionElements.Add(profile_extract);
+
+                try
+                {
+                    Array dims = Array.CreateInstance(typeof(object), 0);
+                    helixProtrusion.GetDimensions(out int numDims, ref dims);  
+                    helixProtrusionElements.Add(new XElement("Dimensions", new XAttribute("Count", numDims)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"HelixProtrusion GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
             }
             catch (Exception ex)
             {

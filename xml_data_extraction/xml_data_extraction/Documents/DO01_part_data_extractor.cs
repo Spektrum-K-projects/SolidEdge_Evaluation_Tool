@@ -64,6 +64,11 @@ namespace xml_data_extraction.Documents
                             partElements.Add(new XElement(FE03_cutout_extractor.Cutout_Extrude((ExtrudedCutout)feat)));
                             continue;
                         }
+                        else if (output == 1197717883)
+                        {
+                            partElements.Add(new XElement(FE03_cutout_extractor.Helix_Cutout_Extrude((HelixCutout)feat)));
+                            continue;
+                        }
                         else if (output == 462094742)
                         {
                             partElements.Add(new XElement(FE04_edge_features_extractor.Chamfer((Chamfer)feat)));
