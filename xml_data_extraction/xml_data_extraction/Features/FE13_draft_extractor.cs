@@ -3,6 +3,7 @@ using SolidEdgePart;
 using System;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
+using xml_data_extraction.Geometries;
 using xml_data_extraction.Miscellaneous_Methods;
 
 namespace xml_data_extraction.Features
@@ -14,46 +15,66 @@ namespace xml_data_extraction.Features
         {
             XElement draftElements = new XElement("Draft", new XAttribute("Type", 462094746));
 
-            Array draftAngles = Array.CreateInstance(typeof(double), 0);
-
             try
             {
-                draftElements.Add(new XElement("name", draft.Name));
-                draftElements.Add(new XElement("type", draft.Type));
-                draftElements.Add(new XElement("modelingModeType", draft.ModelingModeType));
-                draftElements.Add(new XElement("draftSide", draft.DraftSide.ToString()));
+                try { draftElements.Add(new XElement("name", draft.Name)); }
+                catch (Exception ex) { Console.WriteLine($"Draft Name: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { draftElements.Add(new XElement("type", draft.Type)); }
+                catch (Exception ex) { Console.WriteLine($"Draft Type: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { draftElements.Add(new XElement("modelingModeType", draft.ModelingModeType)); }
+                catch (Exception ex) { Console.WriteLine($"Draft ModelingModeType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { draftElements.Add(new XElement("showDimensions", draft.ShowDimensions)); }
+                catch (Exception ex) { Console.WriteLine($"Draft ShowDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { draftElements.Add(new XElement("visible", draft.Visible)); }
+                catch (Exception ex) { Console.WriteLine($"Draft Visible: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { draftElements.Add(new XElement("draftSide", draft.DraftSide.ToString())); }
+                catch (Exception ex) { Console.WriteLine($"Draft DraftSide: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
                 try
                 {
                     dynamic dynDraft = draft;
                     draftElements.Add(new XElement("status", dynDraft.Status));
+                    draftElements.Add(new XElement("suppress", dynDraft.Suppress));
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Draft GetStatus: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                    Console.WriteLine($"Draft GetStatus/Suppress: {ex.Message} | Inner: {ex.InnerException?.Message}");
                 }
 
-                draft.GetDraftAngles(out int draftAngleCount, ref draftAngles);
-                if (draftAngles.Length > 0)
+                try
                 {
-                    draftElements.Add(new XElement("draftAngleCount", draftAngleCount));
-                    draftElements.Add(new XElement("draftAngles",
-                        new XAttribute("values", string.Join(" ", (double[])draftAngles))));
+                    Array draftAngles = Array.CreateInstance(typeof(double), 0);
+                    draft.GetDraftAngles(out int draftAngleCount, ref draftAngles);
+
+                    var draftAnglesElement = new XElement("DraftAngles", new XAttribute("Count", draftAngleCount));
+                    for (int i = 0; i < draftAngles.Length; i++)
+                    {
+                        draftAnglesElement.Add(new XElement("angle", Convert.ToDouble(draftAngles.GetValue(i))));
+                    }
+                    draftElements.Add(draftAnglesElement);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Draft GetDraftAngles: {ex.Message} | Inner: {ex.InnerException?.Message}");
                 }
 
-                // ---- Dimensions (count only - matches how Pattern's GetDimensions was handled) ----
+                // ---- Dimensions ----
                 try
                 {
                     Array dims = Array.CreateInstance(typeof(object), 0);
                     draft.GetDimensions(out int numDims, ref dims);
-                    draftElements.Add(new XElement("Dimensions", new XAttribute("Count", numDims)));
+                    draftElements.Add(GE01_dimensions_extractor.Dimensions_extract_fromArray(dims));
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Draft GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
                 }
 
-                // ---- Whole-feature bounding box ----
                 try
                 {
                     draft.Range(out double x1, out double y1, out double z1, out double x2, out double y2, out double z2);
@@ -66,7 +87,7 @@ namespace xml_data_extraction.Features
                     Console.WriteLine($"Draft GetRange: {ex.Message} | Inner: {ex.InnerException?.Message}");
                 }
 
-                // ---- Edges (mirrors the already-proven pattern from Round, FE04) ----
+                // ---- Edges ----
                 try
                 {
                     Array startPoint = Array.CreateInstance(typeof(double), 0);
@@ -86,16 +107,19 @@ namespace xml_data_extraction.Features
                         edgeElements.Add(new XElement($"endPoints{e}",
                             new XAttribute("startpoint", string.Join(" ", (double[])startPoint)),
                             new XAttribute("endPoint", string.Join(" ", (double[])endPoint))));
+
+                        Marshal.ReleaseComObject(edge);
                     }
 
                     draftElements.Add(edgeElements);
+                    Marshal.ReleaseComObject(edges);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Draft GetEdges: {ex.Message} | Inner: {ex.InnerException?.Message}");
                 }
 
-                // ---- Faces (count only - per-face detail not yet verified against the Face interop) ----
+                // ---- Faces ----
                 try
                 {
                     FeatureTopologyQueryTypeConstants faceTyp = FeatureTopologyQueryTypeConstants.igQueryAll;
@@ -116,18 +140,7 @@ namespace xml_data_extraction.Features
                     Console.WriteLine($"Draft GetDraftPlane: {ex.Message} | Inner: {ex.InnerException?.Message}");
                 }
 
-                // ---- Suppress (whole-feature suppress flag) ----
-                try
-                {
-                    dynamic dynDraft = draft;
-                    draftElements.Add(new XElement("suppress", dynDraft.Suppress));
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Draft GetSuppress: {ex.Message} | Inner: {ex.InnerException?.Message}");
-                }
-
-                // ---- GetStatusEx (status code + description text, when Solid Edge provides one) ----
+                // ---- GetStatusEx ----
                 try
                 {
                     FeatureStatusConstants statusEx = draft.GetStatusEx(out object description);
@@ -142,8 +155,7 @@ namespace xml_data_extraction.Features
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Draft: Error Message:{ex.Message}");
-                return new XElement("Draft", "Error");
+                Console.WriteLine($"Draft: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
             }
             finally
             {
@@ -154,7 +166,7 @@ namespace xml_data_extraction.Features
                 }
             }
 
-            Console.WriteLine("Created Draft Feature XML list");
+            Console.WriteLine("\t Created Draft Feature XML list");
             return draftElements;
         }
     }

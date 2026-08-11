@@ -5,6 +5,7 @@ using System.Xml.Linq;
 
 namespace xml_data_extraction.Features
 {
+    // Feature Not Used wrt to this tool, but added for completeness. This feature is used in Solid Edge for creating helical curves.
     internal class FE14_helical_curve_extractor
     {
         public static XElement HelicalCurve_Extract(HelicalCurve helicalCurve)
@@ -51,10 +52,6 @@ namespace xml_data_extraction.Features
                     Console.WriteLine($"HelicalCurve GetRange: {ex.Message} | Inner: {ex.InnerException?.Message}");
                 }
 
-                // The actual pitch/turns/height data - the reason this extractor exists.
-                // NumOfSections is an INPUT, not something we read back - passing a generous
-                // upper bound since we don't know a curve's real section count in advance.
-                // Untested assumption: verify against a real multi-section helix if you have one.
                 try
                 {
                     int numOfSections = 10;

@@ -3,6 +3,10 @@ import shutil
 import argparse  # --- MODIFICATION: Import argparse to read command-line args
 import sys       # --- MODIFICATION: Import sys to control the exit code
 
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 def file_extract_test(source_folder, destination_folder):
     
     # Check if the Destination folder exists

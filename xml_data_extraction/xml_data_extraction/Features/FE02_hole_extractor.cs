@@ -1,7 +1,10 @@
-﻿using SolidEdgePart;
+﻿using SolidEdgeGeometry;
+using SolidEdgePart;
+using System;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using xml_data_extraction.Geometries;
+using xml_data_extraction.Miscellaneous_Methods;
 using xml_data_extraction.Properties;
 
 namespace xml_data_extraction.Features
@@ -10,140 +13,188 @@ namespace xml_data_extraction.Features
     {
         public static XElement Hole(Hole hole)
         {
-            //SolidEdgePart.Holes holes = null;
-            //SolidEdgePart.Hole hole = null;
-
             XElement holeElements = new XElement("Hole", new XAttribute("Type", 462094722));
 
             try
             {
-                //holes = (SolidEdgePart.Holes)model.Holes;
+                try { holeElements.Add(new XElement("name", hole.Name)); }
+                catch (Exception ex) { Console.WriteLine($"Hole Name: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //for (int i = 1; i <= holes.Count; i++)
-                //{
-                    //hole = (SolidEdgePart.Hole)holes.Item(i);
-                //var depth_hole = hole.Depth;
-                //holeElements.Add(new XElement("depth", depth_hole));
+                try { holeElements.Add(new XElement("type", hole.Type)); }
+                catch (Exception ex) { Console.WriteLine($"Hole Type: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var extentSide_hole = hole.ExtentSide;
-                holeElements.Add(new XElement("extent_side", extentSide_hole));
+                try { holeElements.Add(new XElement("modelingModeType", hole.ModelingModeType)); }
+                catch (Exception ex) { Console.WriteLine($"Hole ModelingModeType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var extentType_hole = hole.ExtentType;
-                holeElements.Add(new XElement("extent_type", extentType_hole));
+                try { holeElements.Add(new XElement("showDimensions", hole.ShowDimensions)); }
+                catch (Exception ex) { Console.WriteLine($"Hole ShowDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(hole);
-                holeElements.Add(profile_extract);
+                try { holeElements.Add(new XElement("visible", hole.Visible)); }
+                catch (Exception ex) { Console.WriteLine($"Hole Visible: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                holeElements.Add(PR03_hole_data_extractor.Hole_Data(hole));
+                try { holeElements.Add(new XElement("extent_side", hole.ExtentSide)); }
+                catch (Exception ex) { Console.WriteLine($"Hole ExtentSide: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //int numProfiles = 0;
-                ////Array profilesArray = null;
-                //Array profilesArray = Array.CreateInstance(typeof(object), 0);
+                try { holeElements.Add(new XElement("extent_type", hole.ExtentType)); }
+                catch (Exception ex) { Console.WriteLine($"Hole ExtentType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //try
-                //{
-                //    hole.GetProfiles(out numProfiles, ref profilesArray);
-                //    Console.WriteLine($"Number of profiles found: {numProfiles}");
-                //}
-                //catch (Exception ex)
-                //{
-                //    Console.WriteLine($"Error retrieving profiles: {ex.Message}");
-                //    return holeElements;
-                //}
+                try { holeElements.Add(new XElement("depth", hole.Depth)); }
+                catch (Exception ex) { Console.WriteLine($"Hole Depth: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //if (profilesArray == null || numProfiles == 0)
-                //{
-                //    Console.WriteLine("No valid profiles found for this extrusion.");
-                //    return holeElements;
-                //}
+                try { holeElements.Add(new XElement("draftAngle", hole.DraftAngle)); }
+                catch (Exception ex) { Console.WriteLine($"Hole DraftAngle: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //XElement profilesRoot = new XElement("Profiles");
+                try { holeElements.Add(new XElement("createPhysicalThread", hole.CreatePhysicalThread)); }
+                catch (Exception ex) { Console.WriteLine($"Hole CreatePhysicalThread: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //foreach (object profileObj in profilesArray)
-                //{
-                //    if (profileObj == null)
-                //    {
-                //        Console.WriteLine("Warning: Null profile object encountered, skipping.");
-                //        continue;
-                //    }
+                // ---- FromPlane / ToPlane ----
+                try { holeElements.Add(MM01_geometry_methods.GetPlaneData(hole.FromPlane, "FromPlane")); }
+                catch (Exception ex) { Console.WriteLine($"Hole GetFromPlane: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //    Profile profile = profileObj as Profile;
-                //    if (profile == null)
-                //    {
-                //        Console.WriteLine("Warning: Unable to cast object to Profile, skipping.");
-                //        continue;
-                //    }
+                try { holeElements.Add(MM01_geometry_methods.GetPlaneData(hole.ToPlane, "ToPlane")); }
+                catch (Exception ex) { Console.WriteLine($"Hole GetToPlane: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //    XElement profileElement = new XElement("Profile");
+                // ---- TopCap / BottomCap / SideFaces ----
+                try { holeElements.Add(MM01_geometry_methods.GetPlaneData(hole.TopCap, "TopCap")); }
+                catch (Exception ex) { Console.WriteLine($"Hole GetTopCap: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //    try
-                //    {
-                //        profileElement.Add(new XElement("profile_name", profile.Name ?? "Unnamed"));
-                //        profileElement.Add(new XElement("profile_type", profile.Type.ToString()));
+                try { holeElements.Add(MM01_geometry_methods.GetPlaneData(hole.BottomCap, "BottomCap")); }
+                catch (Exception ex) { Console.WriteLine($"Hole GetBottomCap: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //        // --- Extract geometry and dimension data ---
-                //        var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
-                //        if (dim_extract != null)
-                //            profileElement.Add(dim_extract);
-                //        else
-                //            Console.WriteLine($"Warning: No dimensions extracted for {profile.Name}.");
+                try { holeElements.Add(MM01_geometry_methods.GetPlaneData(hole.SideFaces, "SideFaces")); }
+                catch (Exception ex) { Console.WriteLine($"Hole GetSideFaces: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //        var relations2d_extract = GE02_relations_extractor.Relations2d_extract(profile);
-                //        if (relations2d_extract != null)
-                //            profileElement.Add(relations2d_extract);
+                // ---- Profiles ----
+                try
+                {
+                    var profile_extract = GE04_getProfiles_extractor.getProfile_extract(hole);
+                    holeElements.Add(profile_extract);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetProfiles: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                //        var line_extract = GE03_2d_geometries_extractor.Line2d_extract(profile);
-                //        if (line_extract != null)
-                //            profileElement.Add(line_extract);
+                // ---- HoleData ----
+                try
+                {
+                    holeElements.Add(PR03_hole_data_extractor.Hole_Data(hole));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetHoleData: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                //        var circle_extract = GE03_2d_geometries_extractor.Circle2d_extract(profile);
-                //        if (circle_extract != null)
-                //            profileElement.Add(circle_extract);
+                // ---- Dimensions ----
+                try
+                {
+                    Array dims = Array.CreateInstance(typeof(object), 0);
+                    hole.GetDimensions(out int numDims, ref dims);
+                    holeElements.Add(GE01_dimensions_extractor.Dimensions_extract_fromArray(dims));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                //        var arc_extract = GE03_2d_geometries_extractor.Arc2d_extract(profile);
-                //        if (arc_extract != null)
-                //            profileElement.Add(arc_extract);
+                try
+                {
+                    hole.Range(out double x1, out double y1, out double z1, out double x2, out double y2, out double z2);
+                    holeElements.Add(new XElement("Range",
+                        new XAttribute("X1", x1), new XAttribute("Y1", y1), new XAttribute("Z1", z1),
+                        new XAttribute("X2", x2), new XAttribute("Y2", y2), new XAttribute("Z2", z2)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetRange: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                //        // --- Add to profiles list ---
-                //        profilesRoot.Add(profileElement);
-                //    }
-                //    catch (Exception innerEx)
-                //    {
-                //        Console.WriteLine($"Error processing profile '{profile?.Name ?? "Unknown"}': {innerEx.Message}");
-                //    }
-                //    finally
-                //    {
-                //        Marshal.ReleaseComObject(profile);
-                //        profile = null;
-                //    }
-                //}
+                // ---- Edges ----
+                try
+                {
+                    Array startPoint = Array.CreateInstance(typeof(double), 0);
+                    Array endPoint = Array.CreateInstance(typeof(double), 0);
 
-                //holeElements.Add(profilesRoot);
+                    FeatureTopologyQueryTypeConstants edgeTyp = FeatureTopologyQueryTypeConstants.igQueryAll;
+                    var edges = hole.Edges[edgeTyp];
 
-                //-------------Need to check the following the if it needs to be shelved---------
-                //var profile_hole = hole.Profile;
-                //XElement profileElement = new XElement("Profiles");
+                    XElement edgeElements = new XElement("edges", new XAttribute("count", edges.Count));
 
-                //profileElement.Add(new XElement("profile_name", profile_hole.Name));
-                //profileElement.Add(new XElement("profile_type", profile_hole.Type));
+                    for (int e = 1; e <= edges.Count; e++)
+                    {
+                        var edge = (Edge)edges.Item(e);
+                        edgeElements.Add(new XElement($"type{e}", edge.Type.ToString()));
 
-                //var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile_hole);
-                //profileElement.Add(dim_extract); // Add dimensions to profile
+                        edge.GetEndPoints(ref startPoint, ref endPoint);
+                        edgeElements.Add(new XElement($"endPoints{e}",
+                            new XAttribute("startpoint", string.Join(" ", (double[])startPoint)),
+                            new XAttribute("endPoint", string.Join(" ", (double[])endPoint))));
 
-                //holeElements.Add(profileElement);  // Add profile to extrusion
+                        Marshal.ReleaseComObject(edge);
+                    }
 
-                ////Console.WriteLine($"HOLE.Depth []: {depth_hole}");
-                ////    Console.WriteLine($"HOLE.Extent Side []: {extentSide_hole}");
-                ////    Console.WriteLine($"HOLE.Extent Type []: {extentType_hole}");
+                    holeElements.Add(edgeElements);
+                    Marshal.ReleaseComObject(edges);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetEdges: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                ////GE01_dimensions_extractor.Dimension_extract(profile_hole);
-                ////Marshal.ReleaseComObject(profile_hole);
-                //////}
+                // ---- Faces ----
+                try
+                {
+                    FeatureTopologyQueryTypeConstants faceTyp = FeatureTopologyQueryTypeConstants.igQueryAll;
+                    var faces = hole.Faces[faceTyp];
+                    holeElements.Add(new XElement("Faces", new XAttribute("Count", faces.Count)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetFaces: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                // ---- Body array  ----
+                try
+                {
+                    Array bodyArray = Array.CreateInstance(typeof(object), 0);
+                    hole.GetBodyArray(out bool multiBodyCut, out int numberOfBodies, out bodyArray);
+                    holeElements.Add(new XElement("BodyArray",
+                        new XAttribute("MultiBodyCut", multiBodyCut),
+                        new XAttribute("NumberOfBodies", numberOfBodies)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetBodyArray: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                // ---- Status / Suppress ----
+                try
+                {
+                    dynamic dynHole = hole;
+                    holeElements.Add(new XElement("status", dynHole.Status));
+                    holeElements.Add(new XElement("suppress", dynHole.Suppress));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetStatus/Suppress: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                // ---- GetStatusEx ----
+                try
+                {
+                    FeatureStatusConstants statusEx = hole.GetStatusEx(out object description);
+                    holeElements.Add(new XElement("statusEx",
+                        new XAttribute("Code", statusEx),
+                        new XAttribute("Description", description?.ToString() ?? "")));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hole GetStatusEx: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Hole: Error Message:{ex.Message}");
-                return new XElement("Hole", "Error");
+                Console.WriteLine($"Hole: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
             }
             finally
             {
@@ -152,14 +203,9 @@ namespace xml_data_extraction.Features
                     Marshal.ReleaseComObject(hole);
                     hole = null;
                 }
-                //if (holes != null)
-                //{
-                //    Marshal.ReleaseComObject(holes);
-                //    holes = null;
-                //}
             }
 
-            Console.WriteLine($"Created Hole XML list");
+            Console.WriteLine($"\t Created Hole XML list");
             return holeElements;
         }
     }

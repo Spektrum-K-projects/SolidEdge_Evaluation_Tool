@@ -1,10 +1,7 @@
 ﻿using SolidEdgePart;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using xml_data_extraction.Miscellaneous_Methods;
 
@@ -18,9 +15,14 @@ namespace xml_data_extraction.Features
 
             try
             {
-                mirrorPartElements.Add(new XElement("name", mirrorPart.Name));
-                mirrorPartElements.Add(new XElement("type", mirrorPart.Type));
-                mirrorPartElements.Add(new XElement("modelingModeType", mirrorPart.ModelingModeType));
+                try { mirrorPartElements.Add(new XElement("name", mirrorPart.Name)); }
+                catch (Exception ex) { Console.WriteLine($"MirrorPart Name: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { mirrorPartElements.Add(new XElement("type", mirrorPart.Type)); }
+                catch (Exception ex) { Console.WriteLine($"MirrorPart Type: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { mirrorPartElements.Add(new XElement("modelingModeType", mirrorPart.ModelingModeType)); }
+                catch (Exception ex) { Console.WriteLine($"MirrorPart ModelingModeType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
                 try
                 {
@@ -111,7 +113,6 @@ namespace xml_data_extraction.Features
             catch (Exception ex)
             {
                 Console.WriteLine($"MirrorPart: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
-                return new XElement("Mirror_Part", "Error");
             }
             finally
             {
@@ -132,15 +133,31 @@ namespace xml_data_extraction.Features
 
             try
             {
-                mirrorCopyElements.Add(new XElement("name", mirrorCopy.Name));
-                mirrorCopyElements.Add(new XElement("type", mirrorCopy.Type));
-                mirrorCopyElements.Add(new XElement("isVisible", mirrorCopy.Visible));
-                mirrorCopyElements.Add(new XElement("modelingModeType", mirrorCopy.ModelingModeType));
-                mirrorCopyElements.Add(new XElement("NumberOfInputFeatures", mirrorCopy.NumberInputFeatures));
+                try { mirrorCopyElements.Add(new XElement("name", mirrorCopy.Name)); }
+                catch (Exception ex) { Console.WriteLine($"MirrorCopy Name: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                mirrorCopy.GetNumberOfOccurrences(out int numOcc, out int numFea);
-                mirrorCopyElements.Add(new XElement("numberOfOccurrences", numOcc));
-                mirrorCopyElements.Add(new XElement("numberOfFeaturesPerOccurrences", numFea));
+                try { mirrorCopyElements.Add(new XElement("type", mirrorCopy.Type)); }
+                catch (Exception ex) { Console.WriteLine($"MirrorCopy Type: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { mirrorCopyElements.Add(new XElement("isVisible", mirrorCopy.Visible)); }
+                catch (Exception ex) { Console.WriteLine($"MirrorCopy Visible: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { mirrorCopyElements.Add(new XElement("modelingModeType", mirrorCopy.ModelingModeType)); }
+                catch (Exception ex) { Console.WriteLine($"MirrorCopy ModelingModeType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { mirrorCopyElements.Add(new XElement("NumberOfInputFeatures", mirrorCopy.NumberInputFeatures)); }
+                catch (Exception ex) { Console.WriteLine($"MirrorCopy NumberInputFeatures: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try
+                {
+                    mirrorCopy.GetNumberOfOccurrences(out int numOcc, out int numFea);
+                    mirrorCopyElements.Add(new XElement("numberOfOccurrences", numOcc));
+                    mirrorCopyElements.Add(new XElement("numberOfFeaturesPerOccurrences", numFea));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"MirrorCopy GetNumberOfOccurrences: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
                 try
                 {
@@ -205,19 +222,38 @@ namespace xml_data_extraction.Features
 
                         for (int i = 0; i < occurrenceArray.Length; i++)
                         {
-                            if (occurrenceArray.GetValue(i) is Array matrix && matrix.Rank == 2)
-                            {
-                                var values = new List<double>();
-                                for (int r = 0; r < matrix.GetLength(0); r++)
-                                    for (int c = 0; c < matrix.GetLength(1); c++)
-                                        values.Add(Convert.ToDouble(matrix.GetValue(r, c)));
+                            var occurrenceElement = new XElement("Occurrence", new XAttribute("Index", i));
 
-                                transformsElement.Add(new XElement("Occurrence",
-                                    new XAttribute("Index", i),
-                                    new XAttribute("Rows", matrix.GetLength(0)),
-                                    new XAttribute("Columns", matrix.GetLength(1)),
-                                    new XAttribute("values", string.Join(" ", values))));
+                            try
+                            {
+                                if (occurrenceArray.GetValue(i) is Array matrix && matrix.Rank == 2)
+                                {
+                                    int rows = matrix.GetLength(0);
+                                    int cols = matrix.GetLength(1);
+                                    occurrenceElement.Add(new XAttribute("Rows", rows), new XAttribute("Columns", cols));
+
+                                    for (int r = 0; r < rows; r++)
+                                    {
+                                        var rowElement = new XElement($"Row{r}");
+                                        for (int c = 0; c < cols; c++)
+                                        {
+                                            rowElement.Add(new XAttribute($"C{c}", matrix.GetValue(r, c)));
+                                        }
+                                        occurrenceElement.Add(rowElement);
+                                    }
+                                }
+                                else
+                                {
+                                    occurrenceElement.Add(new XAttribute("UnexpectedShape",
+                                        occurrenceArray.GetValue(i)?.GetType().Name ?? "null"));
+                                }
                             }
+                            catch (Exception ex)
+                            {
+                                occurrenceElement.Add(new XAttribute("Error", ex.Message));
+                            }
+
+                            transformsElement.Add(occurrenceElement);
                         }
 
                         mirrorCopyElements.Add(transformsElement);
@@ -227,12 +263,10 @@ namespace xml_data_extraction.Features
                 {
                     Console.WriteLine($"MirrorCopy GetTransforms: {ex.Message} | Inner: {ex.InnerException?.Message}");
                 }
-
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"MirrorCopy: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
-                return new XElement("MirrorCopy", "Error");
             }
             finally
             {
@@ -243,7 +277,7 @@ namespace xml_data_extraction.Features
                 }
             }
 
-            Console.WriteLine("Created Mirror Copy XML list");
+            Console.WriteLine("\t Created Mirror Copy XML list");
             return mirrorCopyElements;
         }
     }

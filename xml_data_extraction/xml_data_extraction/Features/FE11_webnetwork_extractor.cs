@@ -14,21 +14,50 @@ namespace xml_data_extraction.Features
 
             try
             {
-                webNetworkElements.Add(new XElement("name", webnetwork.Name));
-                webNetworkElements.Add(new XElement("type", webnetwork.Type));
-                webNetworkElements.Add(new XElement("thickness", webnetwork.Thickness));
-                webNetworkElements.Add(new XElement("fintieDepth", webnetwork.FiniteDepth));
-                webNetworkElements.Add(new XElement("profileExtensionType", webnetwork.ProfileExtensionType));
-                webNetworkElements.Add(new XElement("webDirection", webnetwork.WebDirection));
-                webNetworkElements.Add(new XElement("modelingModeType", webnetwork.ModelingModeType));
-                webNetworkElements.Add(new XElement("extentType", webnetwork.ExtentType));
+                try { webNetworkElements.Add(new XElement("name", webnetwork.Name)); }
+                catch (Exception ex) { Console.WriteLine($"WebNetwork Name: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var profile_extract = GE04_getProfiles_extractor.getProfile_extract(webnetwork);
-                webNetworkElements.Add(profile_extract);
+                try { webNetworkElements.Add(new XElement("type", webnetwork.Type)); }
+                catch (Exception ex) { Console.WriteLine($"WebNetwork Type: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                webnetwork.GetDraft(out DraftSideConstants draftSide, out double draftAngle);
-                webNetworkElements.Add(new XElement("draftSide", draftSide));
-                webNetworkElements.Add(new XElement("draftAngle", draftAngle));
+                try { webNetworkElements.Add(new XElement("modelingModeType", webnetwork.ModelingModeType)); }
+                catch (Exception ex) { Console.WriteLine($"WebNetwork ModelingModeType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { webNetworkElements.Add(new XElement("thickness", webnetwork.Thickness)); }
+                catch (Exception ex) { Console.WriteLine($"WebNetwork Thickness: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { webNetworkElements.Add(new XElement("fintieDepth", webnetwork.FiniteDepth)); }
+                catch (Exception ex) { Console.WriteLine($"WebNetwork FiniteDepth: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { webNetworkElements.Add(new XElement("profileExtensionType", webnetwork.ProfileExtensionType)); }
+                catch (Exception ex) { Console.WriteLine($"WebNetwork ProfileExtensionType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { webNetworkElements.Add(new XElement("webDirection", webnetwork.WebDirection)); }
+                catch (Exception ex) { Console.WriteLine($"WebNetwork WebDirection: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try { webNetworkElements.Add(new XElement("extentType", webnetwork.ExtentType)); }
+                catch (Exception ex) { Console.WriteLine($"WebNetwork ExtentType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try
+                {
+                    var profile_extract = GE04_getProfiles_extractor.getProfile_extract(webnetwork);
+                    webNetworkElements.Add(profile_extract);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"WebNetwork GetProfiles: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                try
+                {
+                    webnetwork.GetDraft(out DraftSideConstants draftSide, out double draftAngle);
+                    webNetworkElements.Add(new XElement("draftSide", draftSide));
+                    webNetworkElements.Add(new XElement("draftAngle", draftAngle));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"WebNetwork GetDraft: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
                 try
                 {
@@ -56,7 +85,7 @@ namespace xml_data_extraction.Features
                 {
                     Array dims = Array.CreateInstance(typeof(object), 0);
                     webnetwork.GetDimensions(out int numDims, ref dims);
-                    webNetworkElements.Add(new XElement("Dimensions", new XAttribute("Count", numDims)));
+                    webNetworkElements.Add(GE01_dimensions_extractor.Dimensions_extract_fromArray(dims));
                 }
                 catch (Exception ex)
                 {
@@ -89,7 +118,7 @@ namespace xml_data_extraction.Features
                 }
             }
 
-            Console.WriteLine("Created Web Networks XML list");
+            Console.WriteLine("Created Web Network XML list");
             return webNetworkElements;
         }
     }
