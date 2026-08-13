@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "xml_data_extraction": {
+      "commandName": "Project",
+      "commandLineArgs": "--input \"C:\\Users\\prade\\OneDrive\\Documents\\OVGU\\'24 WiSe\\Thesis\\Sample Models\\Verification Files\\Verfication Models\\Verification Models\" --output \"C:\\Users\\prade\\OneDrive\\Documents\\OVGU\\'24 WiSe\\Thesis\\Sample Models\\Verification Files\\Verfication Models\\Veification Model XMLs\""
+    }
+  }
+}

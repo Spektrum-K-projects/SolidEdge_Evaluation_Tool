@@ -1,0 +1,30 @@
+﻿<Window x:Class="CADWorkFlowTool.PointsEntryDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CADWorkFlowTool"
+        mc:Ignorable="d"
+        Title="Enter Points for Reference Parts" SizeToContent="WidthAndHeight" 
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        MinWidth="300" MaxHeight="600">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Label Grid.Row="0" Content="Please enter the total points for each part:" FontWeight="Bold"/>
+
+        <!-- This ScrollViewer will hold the dynamic list of parts -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="400" Margin="0,10,0,10">
+            <!-- The Labels and TextBoxes will be added here from code -->
+            <StackPanel x:Name="PartsStackPanel" Orientation="Vertical"/>
+        </ScrollViewer>
+
+        <Button x:Name="BtnSubmit" Grid.Row="2" Content="Submit" 
+                HorizontalAlignment="Right" Padding="15,5" IsDefault="True"
+                Click="BtnSubmit_Click"/>
+    </Grid>
+</Window>

@@ -1,4 +1,6 @@
-﻿using SolidEdgePart;
+﻿using SolidEdgeGeometry;
+using SolidEdgePart;
+using System;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using xml_data_extraction.Geometries;
@@ -13,55 +15,144 @@ namespace xml_data_extraction.Features
 
             try
             {
-                var name = rib.Name;
-                ribElements.Add(new XElement("name", name));
+                try { ribElements.Add(new XElement("name", rib.Name)); }
+                catch (Exception ex) { Console.WriteLine($"Rib Name: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var type = rib.Type;
-                ribElements.Add(new XElement("type", type));
+                try { ribElements.Add(new XElement("type", rib.Type)); }
+                catch (Exception ex) { Console.WriteLine($"Rib Type: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var thickness = rib.Thickness;
-                ribElements.Add(new XElement("thickness", thickness));
+                try { ribElements.Add(new XElement("modelingModeType", rib.ModelingModeType)); }
+                catch (Exception ex) { Console.WriteLine($"Rib ModelingModeType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var thicknessSide = rib.ThicknessSide;
-                ribElements.Add(new XElement("thicknessside", thicknessSide));
+                try { ribElements.Add(new XElement("showDimensions", rib.ShowDimensions)); }
+                catch (Exception ex) { Console.WriteLine($"Rib ShowDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var thicknessType = rib.ThicknessType;
-                ribElements.Add(new XElement("thicknesstype", thicknessType));
+                try { ribElements.Add(new XElement("visible", rib.Visible)); }
+                catch (Exception ex) { Console.WriteLine($"Rib Visible: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //SolidEdgeGeometry.Edges edges = rib.Edges;
-                //ribElements.Add(new XElement("edges", edges));
+                try { ribElements.Add(new XElement("thickness", rib.Thickness)); }
+                catch (Exception ex) { Console.WriteLine($"Rib Thickness: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //var faces = rib.Faces;
-                //ribElements.Add(new XElement("faces", faces));
+                try { ribElements.Add(new XElement("thicknessSide", rib.ThicknessSide)); }
+                catch (Exception ex) { Console.WriteLine($"Rib ThicknessSide: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                //var facesByRay = rib.FacesByRay;
-                //ribElements.Add(new XElement("thickness", thickness));
+                try { ribElements.Add(new XElement("thicknessType", rib.ThicknessType)); }
+                catch (Exception ex) { Console.WriteLine($"Rib ThicknessType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var materialSide = rib.MaterialSide;
-                ribElements.Add(new XElement("materialside", materialSide));
+                try { ribElements.Add(new XElement("profileExtensionType", rib.ProfileExtensionType)); }
+                catch (Exception ex) { Console.WriteLine($"Rib ProfileExtensionType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var modelingModeType = rib.ModelingModeType;
-                ribElements.Add(new XElement("modelingModeType", modelingModeType));
+                try { ribElements.Add(new XElement("materialSide", rib.MaterialSide)); }
+                catch (Exception ex) { Console.WriteLine($"Rib MaterialSide: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                Profile profile = rib.Profile;
+                // ---- Profiles ----
+                try
+                {
+                    var profile_extract = GE04_getProfiles_extractor.getProfile_extract(rib);
+                    ribElements.Add(profile_extract);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Rib GetProfiles: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                XElement profileElement = new XElement("Profiles");
-                profileElement.Add(new XElement("profile_name", profile.Name));
-                profileElement.Add(new XElement("profile_type", profile.Type));
+                // ---- Dimensions ----
+                try
+                {
+                    Array dims = Array.CreateInstance(typeof(object), 0);
+                    rib.GetDimensions(out int numDims, ref dims);
+                    ribElements.Add(GE01_dimensions_extractor.Dimensions_extract_fromArray(dims));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Rib GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
-                profileElement.Add(dim_extract);
+                try
+                {
+                    rib.Range(out double x1, out double y1, out double z1, out double x2, out double y2, out double z2);
+                    ribElements.Add(new XElement("Range",
+                        new XAttribute("X1", x1), new XAttribute("Y1", y1), new XAttribute("Z1", z1),
+                        new XAttribute("X2", x2), new XAttribute("Y2", y2), new XAttribute("Z2", z2)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Rib GetRange: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                Marshal.ReleaseComObject(profile);
+                // ---- Edges ----
+                try
+                {
+                    Array startPoint = Array.CreateInstance(typeof(double), 0);
+                    Array endPoint = Array.CreateInstance(typeof(double), 0);
 
+                    FeatureTopologyQueryTypeConstants edgeTyp = FeatureTopologyQueryTypeConstants.igQueryAll;
+                    var edges = rib.Edges[edgeTyp];
+
+                    XElement edgeElements = new XElement("edges", new XAttribute("count", edges.Count));
+
+                    for (int e = 1; e <= edges.Count; e++)
+                    {
+                        var edge = (Edge)edges.Item(e);
+                        edgeElements.Add(new XElement($"type{e}", edge.Type.ToString()));
+
+                        edge.GetEndPoints(ref startPoint, ref endPoint);
+                        edgeElements.Add(new XElement($"endPoints{e}",
+                            new XAttribute("startpoint", string.Join(" ", (double[])startPoint)),
+                            new XAttribute("endPoint", string.Join(" ", (double[])endPoint))));
+
+                        Marshal.ReleaseComObject(edge);
+                    }
+
+                    ribElements.Add(edgeElements);
+                    Marshal.ReleaseComObject(edges);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Rib GetEdges: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                // ---- Faces ----
+                try
+                {
+                    FeatureTopologyQueryTypeConstants faceTyp = FeatureTopologyQueryTypeConstants.igQueryAll;
+                    var faces = rib.Faces[faceTyp];
+                    ribElements.Add(new XElement("Faces", new XAttribute("Count", faces.Count)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Rib GetFaces: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                // ---- Status / Suppress ----
+                try
+                {
+                    dynamic dynRib = rib;
+                    ribElements.Add(new XElement("status", dynRib.Status));
+                    ribElements.Add(new XElement("suppress", dynRib.Suppress));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Rib GetStatus/Suppress: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                // ---- GetStatusEx ----
+                try
+                {
+                    FeatureStatusConstants statusEx = rib.GetStatusEx(out object description);
+                    ribElements.Add(new XElement("statusEx",
+                        new XAttribute("Code", statusEx),
+                        new XAttribute("Description", description?.ToString() ?? "")));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Rib GetStatusEx: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
             }
-
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                Console.WriteLine($"Ribs: Error Message:{ex.Message}");
-                return new XElement("Rib");
+                Console.WriteLine($"Rib: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
             }
-
             finally
             {
                 if (rib != null)
@@ -71,7 +162,7 @@ namespace xml_data_extraction.Features
                 }
             }
 
-            Console.WriteLine($"Created Rib XML list");
+            Console.WriteLine($"\t Created Rib XML list");
             return ribElements;
         }
     }

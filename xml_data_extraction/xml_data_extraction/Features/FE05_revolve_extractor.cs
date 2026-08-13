@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using SolidEdgePart;
 using xml_data_extraction.Geometries;
@@ -14,40 +9,106 @@ namespace xml_data_extraction.Features
     {
         public static XElement Revolved_protrusion(RevolvedProtrusion revolve)
         {
-            XElement revolvedProtrusionElements = new XElement("RevolvedProtrusion", new XAttribute("Type", 462094710));
+            XElement revolvedProtrusionElements = new XElement("RevolvedProtrusion",
+                                                new XAttribute("Type", 462094710));
 
             try
             {
-                var extentSide = revolve.ExtentSide;
-                revolvedProtrusionElements.Add(new XElement("extent_side", extentSide));
-                Console.WriteLine($"REV.Extent Direction: {extentSide}");
+                try { revolvedProtrusionElements.Add(new XElement("name", revolve.Name)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Protrusion Name: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var extrudeType = revolve.ExtentType;
-                revolvedProtrusionElements.Add(new XElement("extrude_type", extrudeType));
-                Console.WriteLine($"REV.Extent Type: {extrudeType}");
+                try { revolvedProtrusionElements.Add(new XElement("type", revolve.Type)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Protrusion Type: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var profile = revolve.Profile;
-                XElement profileElement = new XElement("Profiles");
-                
-                profileElement.Add(new XElement("profile_name", profile.Name));
-                profileElement.Add(new XElement("profile_type", profile.Type));
+                try
+                {
+                    FeatureStatusConstants featureStatus = revolve.GetStatusEx(out object statusDescription);
+                    revolvedProtrusionElements.Add(new XElement("status", featureStatus));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Protrusion Status: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
-                profileElement.Add(dim_extract); // Add dimensions to profile
+                try { revolvedProtrusionElements.Add(new XElement("angle", revolve.Angle)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Protrusion Angle: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                revolvedProtrusionElements.Add(profileElement);  // Add profile to extrusion
-                Console.WriteLine($"REV.plane: {profile.Name}");
+                try { revolvedProtrusionElements.Add(new XElement("extent_side", revolve.ExtentSide)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Protrusion ExtentSide: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var modeling_mode_type = revolve.ModelingModeType;
-                revolvedProtrusionElements.Add(new XElement("modeling_type", modeling_mode_type));
-                Console.WriteLine($"REV. Modeling Type: {modeling_mode_type}");
+                try { revolvedProtrusionElements.Add(new XElement("extent_type", revolve.ExtentType)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Protrusion ExtentType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                Marshal.ReleaseComObject(profile);
+                try { revolvedProtrusionElements.Add(new XElement("modeling_type", revolve.ModelingModeType)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Protrusion ModelingModeType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
+                try { revolvedProtrusionElements.Add(new XElement("convertToCutoutAllowed", revolve.ConvertToCutoutAllowed)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Protrusion ConvertToCutoutAllowed: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try
+                {
+                    revolve.GetDirection1Extent(out FeaturePropertyConstants extent1Type,
+                                                out FeaturePropertyConstants extent1Side,
+                                                out double angle1);
+
+                    revolvedProtrusionElements.Add(
+                        new XElement("Direction1Extent",
+                            new XElement("extent_type", extent1Type),
+                            new XElement("extent_side", extent1Side),
+                            new XElement("angle", angle1)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Protrusion Direction1Extent: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                try
+                {
+                    revolve.GetDirection2Extent(out FeaturePropertyConstants extent2Type,
+                                                out FeaturePropertyConstants extent2Side,
+                                                out double angle2);
+
+                    revolvedProtrusionElements.Add(
+                        new XElement("Direction2Extent",
+                            new XElement("extent_type", extent2Type),
+                            new XElement("extent_side", extent2Side),
+                            new XElement("angle", angle2)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Protrusion Direction2Extent: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                try { revolvedProtrusionElements.Add(new XElement("profile_side", revolve.ProfileSide)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Protrusion ProfileSide: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try
+                {
+                    Array dims = Array.CreateInstance(typeof(object), 0);
+                    revolve.GetDimensions(out int numDims, ref dims);
+                    revolvedProtrusionElements.Add(GE01_dimensions_extractor.Dimensions_extract_fromArray(dims));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Extrusion GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                try
+                {
+                    XElement profileExtract = GE04_getProfiles_extractor.getProfile_extract(revolve);
+                    revolvedProtrusionElements.Add(profileExtract);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Protrusion Profiles: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                Console.WriteLine("Created Revolved Protrusion XML");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Revolved Extrusion: Error Message:{ex.Message}");
+                Console.WriteLine($"Revolved Protrusion: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
+                return new XElement("RevolvedProtrusion", "Error");
             }
             finally
             {
@@ -63,54 +124,106 @@ namespace xml_data_extraction.Features
 
         public static XElement Revolved_Cutout(RevolvedCutout revolve)
         {
-            XElement revolvedCutoutElements = new XElement("RevolvedCutout", new XAttribute("Type", 462094718));
+            XElement revolvedCutoutElements = new XElement("RevolvedCutout",
+                                                new XAttribute("Type", 462094718));
 
             try
             {
-                var angle = revolve.Angle;
-                revolvedCutoutElements.Add(new XElement("angle", angle));
-                Console.WriteLine($"Rev. Cutout Angle: {angle}");
+                try { revolvedCutoutElements.Add(new XElement("name", revolve.Name)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Cutout Name: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var axis = revolve.Axis;
-                revolvedCutoutElements.Add(new XElement("axis", axis));
-                Console.WriteLine($"Rev. Cutout Axis: {axis}");
+                try { revolvedCutoutElements.Add(new XElement("type", revolve.Type)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Cutout Type: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var extentSide = revolve.ExtentSide;
-                revolvedCutoutElements.Add(new XElement("extent_side", extentSide));
-                Console.WriteLine($"Rev. Cutout Extent Direction: {extentSide}");
+                try
+                {
+                    FeatureStatusConstants featureStatus = revolve.GetStatusEx(out object statusDescription);
+                    revolvedCutoutElements.Add(new XElement("status", featureStatus));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Cutout Status: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var extrudeType = revolve.ExtentType;
-                revolvedCutoutElements.Add(new XElement("extrude_type", extrudeType));
-                Console.WriteLine($"Rev. Cutout Extent Type: {extrudeType}");
+                try { revolvedCutoutElements.Add(new XElement("angle", revolve.Angle)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Cutout Angle: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var profile = revolve.Profile;
-                XElement profileElement = new XElement("Profiles");
+                try { revolvedCutoutElements.Add(new XElement("extent_side", revolve.ExtentSide)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Cutout ExtentSide: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                profileElement.Add(new XElement("profile_name", profile.Name));
-                profileElement.Add(new XElement("profile_type", profile.Type));
+                try { revolvedCutoutElements.Add(new XElement("extent_type", revolve.ExtentType)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Cutout ExtentType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                var dim_extract = GE01_dimensions_extractor.Dimension_extract(profile);
-                profileElement.Add(dim_extract); // Add dimensions to profile
+                try { revolvedCutoutElements.Add(new XElement("modeling_type", revolve.ModelingModeType)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Cutout ModelingModeType: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
 
-                revolvedCutoutElements.Add(profileElement);  // Add profile to extrusion
-                Console.WriteLine($"Rev. Cutout plane: {profile.Name}");
+                try
+                {
+                    revolve.GetDirection1Extent(out FeaturePropertyConstants extent1Type,
+                                                out FeaturePropertyConstants extent1Side,
+                                                out double angle1);
 
-                var profileSide = revolve.ProfileSide;
-                revolvedCutoutElements.Add(new XElement("profile_side", profileSide));
-                Console.WriteLine($"Rev. Cutout Angle: {profileSide}");
+                    revolvedCutoutElements.Add(
+                        new XElement("Direction1Extent",
+                            new XElement("extent_type", extent1Type),
+                            new XElement("extent_side", extent1Side),
+                            new XElement("angle", angle1)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Cutout Direction1Extent: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
 
-                var modeling_mode_type = revolve.ModelingModeType;
-                revolvedCutoutElements.Add(new XElement("modeling_type", modeling_mode_type));
-                Console.WriteLine($"Rev. Cutout Modeling Type: {modeling_mode_type}");
+                try
+                {
+                    revolve.GetDirection2Extent(out FeaturePropertyConstants extent2Type,
+                                                out FeaturePropertyConstants extent2Side,
+                                                out double angle2);
 
-                Marshal.ReleaseComObject(profile);
+                    revolvedCutoutElements.Add(
+                        new XElement("Direction2Extent",
+                            new XElement("extent_type", extent2Type),
+                            new XElement("extent_side", extent2Side),
+                            new XElement("angle", angle2)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Cutout Direction2Extent: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                try { revolvedCutoutElements.Add(new XElement("profile_side", revolve.ProfileSide)); }
+                catch (Exception ex) { Console.WriteLine($"Revolved Cutout ProfileSide: {ex.Message} | Inner: {ex.InnerException?.Message}"); }
+
+                try
+                {
+                    Array dims = Array.CreateInstance(typeof(object), 0);
+                    revolve.GetDimensions(out int numDims, ref dims);
+
+                    revolvedCutoutElements.Add(
+                        GE01_dimensions_extractor.Dimensions_extract_fromArray(dims));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Cutout GetDimensions: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                try
+                {
+                    XElement profileExtract = GE04_getProfiles_extractor.getProfile_extract(revolve);
+                    revolvedCutoutElements.Add(profileExtract);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Revolved Cutout Profiles: {ex.Message} | Inner: {ex.InnerException?.Message}");
+                }
+
+                Console.WriteLine($"Created Revolved Cutout XML");
             }
-
             catch (Exception ex)
             {
-                Console.WriteLine($"Revolved Cutout: Error Message:{ex.Message}");
+                Console.WriteLine($"Revolved Cutout: Error Message:{ex.Message} | Inner: {ex.InnerException?.Message}");
+                return new XElement("RevolvedCutout", "Error");
             }
-
             finally
             {
                 if (revolve != null)
